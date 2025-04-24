@@ -1,0 +1,66 @@
+@{
+    ViewBag.Title = "Đăng nhập";
+    Layout = "_EmptyLayout";
+}
+
+@section Styles {
+    <style>
+        body {
+            background: url("../images/billiards-background.jpg") no-repeat center center fixed !important;
+            background-size: cover !important;
+        }
+    </style>
+}
+
+<div class="login-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="login-container">
+                    <div class="card border-0">
+                        <div class="card-header bg-gradient bg-success-custom text-white text-center py-3">
+                            <h3 class="mb-0"><i class="bi bi-person-circle me-2"></i>Đăng nhập</h3>
+                        </div>
+                        <div class="card-body p-4">
+                            <form method="post" asp-controller="Account" asp-action="Login">
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="Username" name="Username" placeholder="Tên đăng nhập" required />
+                                    <label for="Username">Tên đăng nhập</label>
+                                </div>
+                                <div class="form-floating mb-4">
+                                    <input type="password" class="form-control" id="Password" name="Password" placeholder="Mật khẩu" required />
+                                    <label for="Password">Mật khẩu</label>
+                                </div>
+                                @if (ViewBag.Error != null)
+                                {
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewBag.Error
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                }
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success-custom btn-lg">
+                                        <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-hide alert after 5 seconds
+        $(document).ready(function () {
+            window.setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(500, function(){
+                    $(this).remove(); 
+                });
+            }, 5000);
+        });
+    </script>
+}
