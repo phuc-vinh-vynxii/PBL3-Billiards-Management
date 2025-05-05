@@ -170,3 +170,4 @@ D:\University\PBL3\BilliardsManagement\BilliardsManagement\obj\Debug\net8.0\Bill
 D:\University\PBL3\BilliardsManagement\BilliardsManagement\obj\Debug\net8.0\BilliardsManagement.genruntimeconfig.cache
 D:\University\PBL3\BilliardsManagement\BilliardsManagement\obj\Debug\net8.0\ref\BilliardsManagement.dll
 D:\University\PBL3\BilliardsManagement\BilliardsManagement\bin\Debug\net8.0\BCrypt.Net-Next.dll
+D:\University\PBL3\BilliardsManagement\BilliardsManagement\obj\Debug\net8.0\BilliardsManagement.sourcelink.json

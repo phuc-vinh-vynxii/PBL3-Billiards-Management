@@ -1,146 +1,208 @@
 @{
-    ViewData["Title"] = "Thông tin Bàn Bida";
+    ViewData["Title"] = "Trang chủ nhân viên phục vụ";
     Layout = "_Layout";
 }
 
-<div class="container mt-4">
-    <div class="row">
-        <!-- Cột trái: Bàn bida -->
-        <div class="col-md-4 text-center">
-            <img src="~/images/billiards-table-booked.png" alt="Bàn Bida" class="img-fluid mb-3" style="max-height: 200px;" />
-            <h4 class="table-name">Bàn số 5</h4>
-            <div class="price-info mt-2">
-                <span class="text-white">Giá: 100,000 VND/giờ</span>
+@model BilliardsManagement.Models.ViewModels.WaiterDashboardViewModel
+
+<div class="container-fluid mt-4">
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card table-status-available text-white">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-2"></i>
+                        Bàn trống
+                    </h5>
+                    <h2 class="card-text">@Model.AvailableTableCount</h2>
+                </div>
             </div>
         </div>
-
-        <!-- Cột phải: Thông tin -->
-        <div class="col-md-8">
-            <div class="d-flex justify-content-between align-items-start mb-4">
-                <h3 class="title-custom">Thông tin bàn</h3>
-                <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#addServiceModal">
-                    <i class="bi bi-plus-circle me-2"></i>Thêm dịch vụ
-                </button>
+        <div class="col-md-3">
+            <div class="card stats-card table-status-occupied text-white">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-2"></i>
+                        Bàn đang chơi
+                    </h5>
+                    <h2 class="card-text">@Model.OccupiedTableCount</h2>
+                </div>
             </div>
-
-            <form class="billing-form">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-white">Khách hàng</label>
-                        <input class="form-control bg-transparent text-white" value="Nguyễn Văn A" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-white">Ngày đặt</label>
-                        <input class="form-control bg-transparent text-white" type="date" value="2025-04-24" />
-                    </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card table-status-booked text-white">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-2"></i>
+                        Bàn đã đặt
+                    </h5>
+                    <h2 class="card-text">@Model.BookedTableCount</h2>
                 </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-white">Giờ bắt đầu</label>
-                        <input class="form-control bg-transparent text-white" type="time" value="18:00" onchange="calculateTotal()" id="startTime" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-white">Giờ kết thúc</label>
-                        <input class="form-control bg-transparent text-white" type="time" value="20:00" onchange="calculateTotal()" id="endTime" />
-                    </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title d-flex align-items-center">
+                        <i class="bi bi-cash-coin me-2"></i>
+                        Doanh thu hôm nay
+                    </h5>
+                    <h2 class="card-text">@Model.TodayRevenue.ToString("N0") đ</h2>
                 </div>
-
-                <!-- Bảng dịch vụ -->
-                <div class="table-responsive mb-3">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Tên món</th>
-                                <th>Số lượng</th>
-                                <th>Đơn giá</th>
-                                <th>Thành tiền</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="serviceTableBody">
-                            <tr>
-                                <td class="dish-name">Nước ngọt</td>
-                                <td>
-                                    <input type="number" class="form-control form-control-sm quantity-input" 
-                                           value="2" min="1" style="width: 70px" onchange="calculateTotal()" />
-                                </td>
-                                <td class="dish-price">15,000</td>
-                                <td class="dish-price">30,000</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-warning">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="dish-name">Mì xào bò</td>
-                                <td>
-                                    <input type="number" class="form-control form-control-sm quantity-input" 
-                                           value="1" min="1" style="width: 70px" onchange="calculateTotal()" />
-                                </td>
-                                <td class="dish-price">35,000</td>
-                                <td class="dish-price">35,000</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-warning">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Tổng tiền -->
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-2 text-white"><strong>Thời gian chơi:</strong> <span id="playTime" class="text-warning">2 giờ</span></p>
-                                <p class="mb-2 text-white"><strong>Tiền bàn:</strong> <span id="tablePrice" class="text-warning">200,000 VND</span></p>
-                                <p class="mb-2 text-white"><strong>Tiền dịch vụ:</strong> <span id="servicePrice" class="text-warning">65,000 VND</span></p>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                <h4 class="mb-0 text-white"><strong>Tổng cộng:</strong> <span id="totalPrice" class="text-warning">265,000 VND</span></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </form>
-
-            <div class="text-end mt-4">
-                <button class="btn btn-warning btn-lg">
-                    <i class="bi bi-receipt me-2"></i>Xuất hóa đơn
-                </button>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal thêm dịch vụ -->
-<div class="modal fade" id="addServiceModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Thêm dịch vụ</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Chọn món</label>
-                    <select class="form-select">
-                        <option>Nước ngọt (15,000 VND)</option>
-                        <option>Mì xào bò (35,000 VND)</option>
-                        <option>Snack (10,000 VND)</option>
-                    </select>
+    <div class="row g-4">
+        <!-- Table Status Section -->
+        <div class="col-md-8">
+            <div class="card sessions-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="bi bi-grid-3x3-gap-fill me-2"></i>
+                        Trạng thái bàn
+                    </h5>
+                    <a href="@Url.Action("Table_Information", "Serving")" class="btn btn-primary booking-btn">
+                        <i class="bi bi-plus-circle me-2"></i>Đặt bàn
+                    </a>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Số lượng</label>
-                    <input type="number" class="form-control" min="1" value="1">
+                <div class="card-body">
+                    <div class="row g-4 table-grid">
+                        @if (Model.Tables?.Any() == true)
+                        {
+                            foreach (var table in Model.Tables)
+                            {
+                                string statusClass = table.Status switch
+                                {
+                                    "AVAILABLE" => "table-status-available",
+                                    "IN_USE" => "table-status-occupied",
+                                    "BOOKED" => "table-status-booked",
+                                    _ => "bg-secondary"
+                                };
+
+                                string tableTypeClass = table.TableType?.ToUpper() == "VIP" ? "table-type-vip" : "table-type-standard";
+                                string tableTypeText = table.TableType?.ToUpper() == "VIP" ? "VIP" : "Tiêu chuẩn";
+
+                                <div class="col-md-3">
+                                    <a href="@Url.Action("Table_Information", "Serving", new { id = table.TableId })" 
+                                       class="text-decoration-none">
+                                        <div class="card @statusClass text-white h-100">
+                                            <div class="card-body text-center d-flex flex-column justify-content-center">
+                                                <h5 class="table-name">@table.TableName</h5>
+                                                <span class="@tableTypeClass mb-2">@tableTypeText</span>
+                                                <p class="table-status mb-0">
+                                                    <i class="bi bi-circle-fill me-2"></i>
+                                                    @(table.Status == "AVAILABLE" ? "Trống" : 
+                                                      table.Status == "IN_USE" ? "Đang chơi" : 
+                                                      table.Status == "BOOKED" ? "Đã đặt" : "Không xác định")
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="col-12">
+                                <p class="text-muted text-center">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Không có bàn nào
+                                </p>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-primary">Thêm</button>
+        </div>
+
+        <!-- Active Sessions and Recent Orders -->
+        <div class="col-md-4 d-flex flex-column gap-4">
+            <!-- Active Sessions -->
+            <div class="card sessions-card">
+                <div class="card-header">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Phiên đang hoạt động
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.ActiveSessions?.Any() == true)
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var session in Model.ActiveSessions)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 text-primary">@session.Table?.TableName</h6>
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock me-1"></i>
+                                                Bắt đầu: @(session.StartTime?.ToString("HH:mm"))
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-primary rounded-pill">
+                                            <i class="bi bi-stopwatch me-1"></i>
+                                            @{
+                                                var duration = DateTime.Now - session.StartTime;
+                                                @($"{(duration?.Hours > 0 ? $"{duration?.Hours}h " : "")}{duration?.Minutes}m")
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Không có phiên hoạt động
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card sessions-card">
+                <div class="card-header">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="bi bi-receipt me-2"></i>
+                        Đơn hàng gần đây
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentOrders?.Any() == true)
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var order in Model.RecentOrders)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 text-primary">@order.Session?.Table?.TableName</h6>
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock me-1"></i>
+                                                @(order.CreatedAt?.ToString("HH:mm"))
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-success badge-amount">
+                                            @((order.OrderDetails?.Sum(od => (od.UnitPrice ?? 0) * (od.Quantity ?? 0)) ?? 0).ToString("N0")) đ
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Chưa có đơn hàng nào hôm nay
+                        </p>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -148,38 +210,22 @@
 
 @section Scripts {
     <script>
-        function calculateTotal() {
-            // Tính thời gian chơi
-            const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
-            
-            const start = new Date(`2025-01-01 ${startTime}`);
-            const end = new Date(`2025-01-01 ${endTime}`);
-            const diffHours = (end - start) / (1000 * 60 * 60);
-            
-            // Giá bàn mỗi giờ
-            const pricePerHour = 100000;
-            const tableTotal = diffHours * pricePerHour;
-            
-            // Tính tiền dịch vụ
-            let serviceTotal = 0;
-            const rows = document.querySelectorAll('#serviceTableBody tr');
-            rows.forEach(row => {
-                const quantity = parseInt(row.querySelector('.quantity-input').value);
-                const price = parseInt(row.querySelector('td:nth-child(3)').textContent.replace(/\D/g,''));
-                const total = quantity * price;
-                row.querySelector('td:nth-child(4)').textContent = total.toLocaleString() + '';
-                serviceTotal += total;
-            });
-            
-            // Cập nhật hiển thị
-            document.getElementById('playTime').textContent = `${diffHours} giờ`;
-            document.getElementById('tablePrice').textContent = `${tableTotal.toLocaleString()} VND`;
-            document.getElementById('servicePrice').textContent = `${serviceTotal.toLocaleString()} VND`;
-            document.getElementById('totalPrice').textContent = `${(tableTotal + serviceTotal).toLocaleString()} VND`;
-        }
+        // Auto refresh the page every 30 seconds to keep data current
+        setTimeout(function() {
+            location.reload();
+        }, 30000);
 
-        // Tính toán ban đầu
-        calculateTotal();
+        // Add animation when new data arrives
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.stats-card').forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100);
+            });
+        });
     </script>
 }

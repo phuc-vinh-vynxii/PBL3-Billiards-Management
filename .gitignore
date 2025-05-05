@@ -1,0 +1,100 @@
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Visual Studio
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.ide
+*.sw?
+*.[Cc]ache
+!*.[Cc]ache/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# IDE
+*.swp
+*.swo
+.idea/
+.project
+.classpath
+.settings/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application specific
+appsettings.Development.json
+appsettings.Production.json
+*.pfx
+*.publishsettings
+
+# Coverage reports
+coverage/
+*.coverage
+.coverage.*
+
+# Test Results
+TestResults/
+[Tt]est[Rr]esult*/

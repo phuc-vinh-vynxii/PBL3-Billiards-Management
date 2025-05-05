@@ -99,7 +99,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "2642"
+          "Value": "7250"
         },
         {
           "Name": "Content-Type",
@@ -107,22 +107,22 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk=\""
+          "Value": "\"yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Thu, 24 Apr 2025 07:44:36 GMT"
+          "Value": "Fri, 25 Apr 2025 17:00:28 GMT"
         }
       ],
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk="
+          "Value": "sha256-yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y="
         }
       ]
     },
     {
-      "Route": "css/site.xf0udgedto.css",
+      "Route": "css/site.q8dv74fodm.css",
       "AssetFile": "css/site.css",
       "Selectors": [],
       "ResponseHeaders": [
@@ -136,7 +136,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "2642"
+          "Value": "7250"
         },
         {
           "Name": "Content-Type",
@@ -144,21 +144,21 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk=\""
+          "Value": "\"yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Thu, 24 Apr 2025 07:44:36 GMT"
+          "Value": "Fri, 25 Apr 2025 17:00:28 GMT"
         }
       ],
       "EndpointProperties": [
         {
           "Name": "fingerprint",
-          "Value": "xf0udgedto"
+          "Value": "q8dv74fodm"
         },
         {
           "Name": "integrity",
-          "Value": "sha256-veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk="
+          "Value": "sha256-yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y="
         },
         {
           "Name": "label",
@@ -409,6 +409,88 @@
         {
           "Name": "integrity",
           "Value": "sha256-n03jc8gGk2jgFXmDWtQ+txvpwIZ3bTegs/nNP+mIxCU="
+        }
+      ]
+    },
+    {
+      "Route": "js/serving.js",
+      "AssetFile": "js/serving.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "6954"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 25 Apr 2025 17:32:53 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA="
+        }
+      ]
+    },
+    {
+      "Route": "js/serving.vzyakuygkl.js",
+      "AssetFile": "js/serving.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "6954"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 25 Apr 2025 17:32:53 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "vzyakuygkl"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA="
+        },
+        {
+          "Name": "label",
+          "Value": "js/serving.js"
         }
       ]
     },

@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "Wa6ZeZE1EOHVmestXYAVts1eJcQRCwX1H6OYstlZG/E=",
+  "Hash": "qGc/RSGJpfEE7Fve+2238MO+V4ELOA+v+aQZdJMFLh0=",
   "Source": "BilliardsManagement",
   "BasePath": "_content/BilliardsManagement",
   "Mode": "Default",
@@ -73,8 +73,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "Fingerprint": "xf0udgedto",
-      "Integrity": "veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk=",
+      "Fingerprint": "q8dv74fodm",
+      "Integrity": "yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\css\\site.css"
@@ -141,6 +141,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\billiards-table-booked.png"
+    },
+    {
+      "Identity": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\serving.js",
+      "SourceId": "BilliardsManagement",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\",
+      "BasePath": "_content/BilliardsManagement",
+      "RelativePath": "js/serving#[.{fingerprint}]?.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "vzyakuygkl",
+      "Integrity": "q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\serving.js"
     },
     {
       "Identity": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\site.js",
@@ -1537,7 +1558,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "2642"
+          "Value": "7250"
         },
         {
           "Name": "Content-Type",
@@ -1545,11 +1566,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk=\""
+          "Value": "\"yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Thu, 24 Apr 2025 07:44:36 GMT"
+          "Value": "Fri, 25 Apr 2025 17:00:28 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -1559,12 +1580,12 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk="
+          "Value": "sha256-yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y="
         }
       ]
     },
     {
-      "Route": "css/site.xf0udgedto.css",
+      "Route": "css/site.q8dv74fodm.css",
       "AssetFile": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\css\\site.css",
       "Selectors": [],
       "ResponseHeaders": [
@@ -1574,7 +1595,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "2642"
+          "Value": "7250"
         },
         {
           "Name": "Content-Type",
@@ -1582,11 +1603,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk=\""
+          "Value": "\"yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Thu, 24 Apr 2025 07:44:36 GMT"
+          "Value": "Fri, 25 Apr 2025 17:00:28 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -1596,7 +1617,7 @@
       "EndpointProperties": [
         {
           "Name": "fingerprint",
-          "Value": "xf0udgedto"
+          "Value": "q8dv74fodm"
         },
         {
           "Name": "label",
@@ -1604,7 +1625,7 @@
         },
         {
           "Name": "integrity",
-          "Value": "sha256-veo1+/oFbbQrOri1yM5F/ARIO+HD3+LQpE2j7ActwQk="
+          "Value": "sha256-yjvRa9RoiYJ7Jzx72M7ifT6nZzhb+Ur7CalNAhXoc6Y="
         }
       ]
     },
@@ -1851,6 +1872,88 @@
         {
           "Name": "integrity",
           "Value": "sha256-n03jc8gGk2jgFXmDWtQ+txvpwIZ3bTegs/nNP+mIxCU="
+        }
+      ]
+    },
+    {
+      "Route": "js/serving.js",
+      "AssetFile": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\serving.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "6954"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 25 Apr 2025 17:32:53 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA="
+        }
+      ]
+    },
+    {
+      "Route": "js/serving.vzyakuygkl.js",
+      "AssetFile": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\serving.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "6954"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 25 Apr 2025 17:32:53 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "vzyakuygkl"
+        },
+        {
+          "Name": "label",
+          "Value": "js/serving.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-q7szUMd54yRjbcscnRrS2MLllrAVmzyrVkd040VgSmA="
         }
       ]
     },
