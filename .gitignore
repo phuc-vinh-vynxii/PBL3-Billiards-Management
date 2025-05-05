@@ -98,3 +98,6 @@ coverage/
 # Test Results
 TestResults/
 [Tt]est[Rr]esult*/
+
+appsettings.json
+appsettings.Development.json
