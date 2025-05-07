@@ -1,0 +1,95 @@
+@model BilliardsManagement.Models.ViewModels.RegisterViewModel
+@{
+    ViewBag.Title = "Đăng ký";
+    Layout = "_EmptyLayout";
+}
+
+@section Styles {
+    <style>
+        body {
+            background: url("../images/billiards-background.jpg") no-repeat center center fixed !important;
+            background-size: cover !important;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient text-white text-center py-3" style="background-color: #0F6222 !important;">
+                    <h3 class="mb-0 text-white"><i class="bi bi-person-plus-fill me-2"></i>Đăng ký tài khoản</h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" asp-controller="Account" asp-action="Register">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Username" class="form-control" placeholder="Tên đăng nhập" />
+                            <label asp-for="Username"></label>
+                            <span asp-validation-for="Username" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Password" class="form-control" placeholder="Mật khẩu" />
+                            <label asp-for="Password"></label>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Xác nhận mật khẩu" />
+                            <label asp-for="ConfirmPassword"></label>
+                            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="FullName" class="form-control" placeholder="Họ và tên" />
+                            <label asp-for="FullName"></label>
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Email" class="form-control" placeholder="Email" />
+                            <label asp-for="Email"></label>
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <input asp-for="Phone" class="form-control" placeholder="Số điện thoại" />
+                            <label asp-for="Phone"></label>
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-lg text-white" style="background-color: #0F6222;">
+                                <i class="bi bi-person-plus me-2"></i><span class="text-white">Đăng ký</span>
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <a asp-action="Login" class="text-decoration-none">Đã có tài khoản? Đăng nhập ngay</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Auto-hide alert after 5 seconds
+        $(document).ready(function () {
+            window.setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(500, function(){
+                    $(this).remove(); 
+                });
+            }, 5000);
+        });
+    </script>
+}

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BilliardsManagement.Models.Entities;
 
-[Table("Session")]
-public partial class Session
+public class Session
 {
+    [Key]
     public int SessionId { get; set; }
 
     public int? TableId { get; set; }
@@ -17,15 +18,19 @@ public partial class Session
 
     public DateTime? EndTime { get; set; }
 
-    public decimal? TotalTime { get; set; }
-
+    [Column(TypeName = "decimal(10,2)")]
     public decimal? TableTotal { get; set; }
 
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal? TotalTime { get; set; }
+
+    [ForeignKey("EmployeeId")]
     public virtual Employee? Employee { get; set; }
+
+    [ForeignKey("TableId")]
+    public virtual Table? Table { get; set; }
 
     public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-
-    public virtual Table? Table { get; set; }
 }

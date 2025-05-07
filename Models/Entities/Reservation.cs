@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BilliardsManagement.Models.Entities;
@@ -7,6 +8,7 @@ namespace BilliardsManagement.Models.Entities;
 [Table("Reservation")]
 public partial class Reservation
 {
+    [Key]
     public int ReservationId { get; set; }
 
     public int? CustomerId { get; set; }
@@ -17,11 +19,15 @@ public partial class Reservation
 
     public DateTime? EndTime { get; set; }
 
+    [StringLength(15)]
     public string? Status { get; set; }
 
+    [Column(TypeName = "text")]
     public string? Notes { get; set; }
 
+    [ForeignKey("CustomerId")]
     public virtual Customer? Customer { get; set; }
 
+    [ForeignKey("TableId")]
     public virtual Table? Table { get; set; }
 }

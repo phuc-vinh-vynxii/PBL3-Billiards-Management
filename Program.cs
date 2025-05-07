@@ -1,4 +1,3 @@
-using BilliardsManagement.Data;
 using Microsoft.EntityFrameworkCore;
 using BilliardsManagement.Models.Entities;
 
@@ -8,7 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession();
 builder.Services.AddDbContext<BilliardsDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.EnableSensitiveDataLogging();
+});
 
 
 var app = builder.Build();
@@ -30,6 +32,6 @@ app.UseSession();
 app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

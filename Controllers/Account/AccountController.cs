@@ -84,5 +84,50 @@ namespace BilliardsManagement.Controllers
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
+
+        [HttpGet]
+        public IActionResult Register()
+        {
+            return View(new RegisterViewModel());
+        }
+
+        [HttpPost]
+        public IActionResult Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            // Check if username already exists
+            if (_context.Employees.Any(e => e.Username == model.Username))
+            {
+                ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại.");
+                return View(model);
+            }
+
+            // Check if email already exists
+            if (_context.Employees.Any(e => e.Email == model.Email))
+            {
+                ModelState.AddModelError("Email", "Email đã được sử dụng.");
+                return View(model);
+            }
+
+            var employee = new Employee
+            {
+                Username = model.Username,
+                Password = PasswordHasher.ComputeSha256Hash(model.Password),
+                FullName = model.FullName,
+                Email = model.Email,
+                Phone = model.Phone,
+                Position = "SERVING" // Default role
+            };
+
+            _context.Employees.Add(employee);
+            _context.SaveChanges();
+
+            TempData["SuccessMessage"] = "Đăng ký thành công! Vui lòng đăng nhập.";
+            return RedirectToAction(nameof(Login));
+        }
     }
 }
