@@ -126,6 +126,10 @@ public partial class BilliardsDbContext : DbContext
             entity.Property(e => e.Category).HasMaxLength(10);
             entity.Property(e => e.Price).HasColumnType("decimal(10,2)");
             entity.Property(e => e.Status).HasMaxLength(15);
+
+            // Configure ProductType enum to be stored as string
+            entity.Property(e => e.ProductType)
+                .HasConversion<string>();
         });
 
         modelBuilder.Entity<Reservation>(entity =>

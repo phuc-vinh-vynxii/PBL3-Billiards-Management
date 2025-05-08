@@ -173,7 +173,76 @@ function updateOrderTotal() {
   }
 }
 
+// Table management functionality
+class TableManager {
+  constructor() {
+    this.initializeEventListeners();
+    this.startAutoRefresh();
+  }
+
+  initializeEventListeners() {
+    // Add quantity validation
+    document.querySelectorAll(".quantity-input").forEach((input) => {
+      input.addEventListener("change", (e) => {
+        const max = parseInt(e.target.max);
+        const value = parseInt(e.target.value);
+        if (value > max) {
+          e.target.value = max;
+          alert("Số lượng vượt quá tồn kho!");
+        }
+        if (value < 1) {
+          e.target.value = 1;
+        }
+      });
+    });
+
+    // Tab switching
+    const productTabs = document.getElementById("productTabs");
+    if (productTabs) {
+      productTabs.querySelectorAll(".nav-link").forEach((tab) => {
+        tab.addEventListener("click", (e) => {
+          e.preventDefault();
+          const targetId = e.target.getAttribute("href").substring(1);
+          document.querySelectorAll(".tab-pane").forEach((pane) => {
+            pane.classList.remove("show", "active");
+          });
+          document.getElementById(targetId).classList.add("show", "active");
+          productTabs.querySelectorAll(".nav-link").forEach((link) => {
+            link.classList.remove("active");
+          });
+          e.target.classList.add("active");
+        });
+      });
+    }
+  }
+
+  startAutoRefresh() {
+    // Refresh the page every minute to update table status
+    setInterval(() => {
+      if (!document.hidden) {
+        window.location.reload();
+      }
+    }, 60000);
+  }
+
+  static formatCurrency(amount) {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount);
+  }
+}
+
 // Initialize on page load
-document.addEventListener("DOMContentLoaded", function () {
-  handleProductSelection();
+document.addEventListener("DOMContentLoaded", () => {
+  const tableManager = new TableManager();
+
+  // Handle item removal confirmation
+  document.querySelectorAll(".remove-item").forEach((button) => {
+    button.addEventListener("click", (e) => {
+      if (!confirm("Bạn có chắc chắn muốn xóa món này?")) {
+        e.preventDefault();
+      }
+    });
+  });
 });

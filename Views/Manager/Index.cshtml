@@ -1,1 +1,145 @@
-<h2>Welcome Manager</h2>
+@model BilliardsManagement.Models.ViewModels.ManagerDashboardViewModel
+@{
+    ViewData["Title"] = "Trang quản lý";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Doanh thu hôm nay</h5>
+                    <h2 class="card-text">@Model.TodayRevenue.ToString("N0") đ</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Tổng số bàn</h5>
+                    <p class="mb-0">Hoạt động tốt: @Model.AvailableTables</p>
+                    <p class="mb-0">Hỏng: @Model.BrokenTables</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Nhân viên</h5>
+                    <h2 class="card-text">@Model.TotalEmployees</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Sản phẩm sắp hết</h5>
+                    <h2 class="card-text">@Model.LowStockProducts</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Functions -->
+    <div class="row g-4">
+        <!-- Đặt bàn -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-table fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Đặt bàn</h5>
+                    <p class="card-text">Quản lý đặt bàn và gọi thức uống</p>
+                    <a asp-controller="Manager" asp-action="Booking" class="btn btn-primary">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý tình trạng bàn -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-tools fs-1 text-success mb-3"></i>
+                    <h5 class="card-title">Quản lý tình trạng bàn</h5>
+                    <p class="card-text">Kiểm tra và cập nhật tình trạng các bàn</p>
+                    <a asp-controller="Manager" asp-action="TableManagement" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý doanh thu -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-cash-stack fs-1 text-danger mb-3"></i>
+                    <h5 class="card-title">Quản lý doanh thu</h5>
+                    <p class="card-text">Xem báo cáo và thống kê doanh thu</p>
+                    <a asp-controller="Manager" asp-action="Revenue" class="btn btn-danger">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý xuất nhập kho -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam fs-1 text-warning mb-3"></i>
+                    <h5 class="card-title">Quản lý thiết bị và dụng cụ</h5>
+                    <p class="card-text">Quản lý thiết bị và dụng cụ</p>
+                    <a asp-controller="Manager" asp-action="Equipment" class="btn btn-warning">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý F&B -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-cup-hot fs-1 text-success mb-3"></i>
+                    <h5 class="card-title">Quản lý đồ ăn thức uống</h5>
+                    <p class="card-text">Quản lý đồ ăn và thức uống</p>
+                    <a asp-controller="Manager" asp-action="FoodAndBeverage" class="btn btn-success">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý nhân sự -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-people fs-1 text-info mb-3"></i>
+                    <h5 class="card-title">Quản lý nhân sự</h5>
+                    <p class="card-text">Quản lý thông tin nhân viên</p>
+                    <a asp-controller="Manager" asp-action="Staff" class="btn btn-info">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý phân quyền -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-lock fs-1 text-secondary mb-3"></i>
+                    <h5 class="card-title">Quản lý phân quyền</h5>
+                    <p class="card-text">Quản lý quyền truy cập hệ thống</p>
+                    <a asp-controller="Manager" asp-action="Roles" class="btn btn-secondary">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

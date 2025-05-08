@@ -1,0 +1,185 @@
+@model BilliardsManagement.Models.ViewModels.InventoryViewModel
+@{
+    ViewData["Title"] = "Quản lý đồ ăn thức uống";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-cup-hot me-2"></i>Quản lý đồ ăn thức uống</h2>
+        <button class="btn btn-success" onclick="openAddProductModal()">
+            <i class="bi bi-plus-circle me-2"></i>Thêm mới
+        </button>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Tổng giá trị</h5>
+                    <h2 class="card-text">@Model.TotalValue.ToString("N0") đ</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Tổng số mặt hàng</h5>
+                    <h2 class="card-text">@Model.TotalItems</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Sắp hết hàng</h5>
+                    <h2 class="card-text">@Model.LowStockItems</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Giá</th>
+                            <th>Số lượng</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var product in Model.Products)
+                        {
+                            var statusClass = product.Status switch
+                            {
+                                "AVAILABLE" => "badge bg-success",
+                                "OUT_OF_STOCK" => "badge bg-danger",
+                                _ => "badge bg-secondary"
+                            };
+
+                            <tr>
+                                <td>@product.ProductId</td>
+                                <td>@product.ProductName</td>
+                                <td>@product.Price?.ToString("N0") đ</td>
+                                <td>@product.Quantity</td>
+                                <td>
+                                    <span class="@statusClass">
+                                        @(product.Status switch
+                                        {
+                                            "AVAILABLE" => "Còn hàng",
+                                            "OUT_OF_STOCK" => "Hết hàng",
+                                            _ => product.Status
+                                        })
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary me-1" onclick="openEditProductModal(@product.ProductId)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(@product.ProductId)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Thêm sản phẩm mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm" method="post" asp-action="SaveProduct">
+                    <input type="hidden" name="ProductId" id="productId" value="0" />
+                    <input type="hidden" name="Status" id="status" value="AVAILABLE" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Tên sản phẩm</label>
+                        <input type="text" class="form-control" name="ProductName" id="productName" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Loại</label>
+                        <select class="form-select" name="ProductType" id="productType" required>
+                            <option value="FOOD">Đồ ăn</option>
+                            <option value="BEVERAGE">Đồ uống</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Giá (VNĐ)</label>
+                        <input type="number" class="form-control" name="Price" id="price" required min="0" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Số lượng</label>
+                        <input type="number" class="form-control" name="Quantity" id="quantity" required min="0" />
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-success">Lưu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openAddProductModal() {
+            document.getElementById('modalTitle').textContent = 'Thêm sản phẩm mới';
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '0';
+            document.getElementById('status').value = 'AVAILABLE';
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+
+        function openEditProductModal(id) {
+            document.getElementById('modalTitle').textContent = 'Chỉnh sửa sản phẩm';
+            fetch(`/Manager/GetProduct/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('productId').value = data.productId;
+                    document.getElementById('productName').value = data.productName;
+                    document.getElementById('productType').value = data.productType;
+                    document.getElementById('price').value = data.price;
+                    document.getElementById('quantity').value = data.quantity;
+                    document.getElementById('status').value = data.status;
+                    new bootstrap.Modal(document.getElementById('productModal')).show();
+                });
+        }
+
+        function deleteProduct(id) {
+            if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
+
+            fetch(`/Manager/DeleteProduct/${id}`, { method: 'POST' })
+                .then(response => {
+                    if (response.ok) window.location.reload();
+                    else alert('Có lỗi xảy ra khi xóa sản phẩm');
+                });
+        }
+
+        // Auto-update status based on quantity
+        document.getElementById('quantity').addEventListener('change', function(e) {
+            const quantity = parseInt(e.target.value);
+            document.getElementById('status').value = quantity <= 0 ? 'OUT_OF_STOCK' : 'AVAILABLE';
+        });
+    </script>
+}

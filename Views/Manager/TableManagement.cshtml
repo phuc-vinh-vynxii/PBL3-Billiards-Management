@@ -1,0 +1,190 @@
+@model IEnumerable<BilliardsManagement.Models.Entities.Table>
+@{
+    ViewData["Title"] = "Quản lý bàn";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <a asp-controller="Manager" asp-action="Index" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left me-2"></i>Quay lại
+            </a>
+            <h2 class="mb-0"><i class="bi bi-tools me-2"></i>Quản lý tình trạng bàn</h2>
+        </div>
+        <form asp-action="AddTable" method="post" class="d-inline">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Thêm bàn mới
+            </button>
+        </form>
+    </div>
+
+    <!-- Table Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Bàn hoạt động tốt</h5>
+                    <h2 class="card-text">@Model.Count(t => t.Status == "AVAILABLE")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Bàn bảo trì</h5>
+                    <h2 class="card-text">@Model.Count(t => t.Status == "MAINTENANCE")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Bàn hỏng</h5>
+                    <h2 class="card-text">@Model.Count(t => t.Status == "BROKEN")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table List -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên bàn</th>
+                            <th>Loại bàn</th>
+                            <th>Giá/giờ</th>
+                            <th>Tình trạng</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var table in Model)
+                        {
+                            <tr>
+                                <td>@table.TableId</td>
+                                <td>@table.TableName</td>
+                                <td>
+                                    <span class="badge @(table.TableType?.ToUpper() == "VIP" ? "bg-warning" : "bg-secondary")">
+                                        @(table.TableType?.ToUpper() == "VIP" ? "VIP" : "Tiêu chuẩn")
+                                    </span>
+                                </td>
+                                <td>@table.PricePerHour?.ToString("N0") đ</td>
+                                <td>
+                                    @{
+                                        var (statusClass, statusText) = table.Status switch
+                                        {
+                                            "AVAILABLE" => ("bg-success", "Hoạt động tốt"),
+                                            "MAINTENANCE" => ("bg-warning", "Bảo trì"),
+                                            "BROKEN" => ("bg-danger", "Hỏng"),
+                                            _ => ("bg-secondary", "Không xác định")
+                                        };
+                                    }
+                                    <span class="badge @statusClass">@statusText</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editTableModal" 
+                                            data-id="@table.TableId"
+                                            data-name="@table.TableName"
+                                            data-type="@table.TableType"
+                                            data-status="@table.Status"
+                                            data-price="@table.PricePerHour">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form asp-action="ToggleTableStatus" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@table.TableId" />
+                                        <button type="submit" class="btn btn-sm @(table.Status == "BROKEN" ? "btn-success" : "btn-danger")"
+                                                title="@(table.Status == "BROKEN" ? "Đánh dấu hoạt động tốt" : "Đánh dấu hỏng")">
+                                            <i class="bi @(table.Status == "BROKEN" ? "bi-check-circle" : "bi-x-circle")"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Table Modal -->
+<div class="modal fade" id="editTableModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chỉnh sửa thông tin bàn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="EditTable" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="tableId" id="editTableId" />
+                    <input type="hidden" name="pricePerHour" id="editTablePrice" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Tên bàn</label>
+                        <input type="text" class="form-control" id="editTableName" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Loại bàn</label>
+                        <select name="tableType" id="editTableType" class="form-select" required onchange="updatePrice()">
+                            <option value="STANDARD">Tiêu chuẩn (100,000đ/giờ)</option>
+                            <option value="VIP">VIP (200,000đ/giờ)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tình trạng</label>
+                        <select name="status" id="editTableStatus" class="form-select" required>
+                            <option value="AVAILABLE">Hoạt động tốt</option>
+                            <option value="MAINTENANCE">Bảo trì</option>
+                            <option value="BROKEN">Hỏng</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Giá/giờ (VNĐ)</label>
+                        <input type="text" class="form-control" readonly id="displayPrice" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('editTableModal').addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const modal = this;
+            
+            // Set values in modal
+            modal.querySelector('#editTableId').value = button.dataset.id;
+            modal.querySelector('#editTableName').value = button.dataset.name;
+            modal.querySelector('#editTableType').value = button.dataset.type;
+            modal.querySelector('#editTableStatus').value = button.dataset.status;
+            modal.querySelector('#editTablePrice').value = button.dataset.price;
+            
+            // Update display price based on table type
+            updatePrice();
+        });
+
+        function updatePrice() {
+            const tableType = document.getElementById('editTableType').value;
+            const price = tableType === 'VIP' ? 200000 : 100000;
+            document.getElementById('editTablePrice').value = price;
+            document.getElementById('displayPrice').value = price.toLocaleString('vi-VN') + ' đ';
+        }
+    </script>
+}

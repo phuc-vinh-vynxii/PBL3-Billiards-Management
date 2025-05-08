@@ -1,6 +1,6 @@
 @{
     var userRole = Context.Session.GetString("Role")?.ToUpper() ?? "";
-    var fullName = Context.Session.GetString("FullName") ?? "User";
+    var fullName = Context.Session.GetString("FullName");
     var roleDisplay = userRole switch
     {
         "MANAGER" => "Quản lý",
@@ -13,56 +13,73 @@
 <header class="custom-header">
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Quản lý quán Billiards</a>
+            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-dribbble me-2"></i>Billiards Management
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-                <span class="navbar-toggler-icon"></span>
+                <i class="bi bi-list"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav me-auto">
                     @if (userRole == "MANAGER")
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Manager" asp-action="Index">Trang chủ</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Manager" asp-action="Tables">Bàn</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button">
+                                <i class="bi bi-gear me-1"></i>Quản lý
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="Index">Thống kê</a></li>
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="TableManagement">Quản lý bàn</a></li>
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="Equipment">Quản lý thiết bị và dụng cụ</a></li>
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="FoodAndBeverage">Quản lý đồ ăn thức uống</a></li>
+                            </ul>
                         </li>
                     }
                     else if (userRole == "CASHIER")
                     {
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Cashier" asp-action="Index">Trang chủ</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Cashier" asp-action="Tables">Bàn</a>
+                            <a class="nav-link" asp-controller="Cashier" asp-action="Index">
+                                <i class="bi bi-cash-stack me-1"></i>Thu ngân
+                            </a>
                         </li>
                     }
                     else if (userRole == "SERVING")
                     {
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Serving" asp-action="Index">Trang chủ</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Serving" asp-action="Tables">Bàn</a>
+                            <a class="nav-link" asp-controller="Serving" asp-action="Index">
+                                <i class="bi bi-table me-1"></i>Phục vụ bàn
+                            </a>
                         </li>
                     }
                 </ul>
 
-                <div class="dropdown">
-                    <button class="btn dropdown-toggle user-profile" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle me-2"></i>@fullName (@roleDisplay)
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <form asp-controller="Account" asp-action="Logout" method="post">
-                                <button type="submit" class="dropdown-item">
-                                    <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
+                @if (!string.IsNullOrEmpty(fullName))
+                {
+                    <div class="dropdown">
+                        <button class="user-profile dropdown-toggle" type="button">
+                            <i class="bi bi-person-circle me-1"></i>@fullName (@roleDisplay)
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex">
+                        <a class="nav-link me-3" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+                        <a class="nav-link" asp-controller="Account" asp-action="Register">Đăng ký</a>
+                    </div>
+                }
             </div>
         </div>
     </nav>

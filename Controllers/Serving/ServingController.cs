@@ -1,280 +1,141 @@
 using Microsoft.AspNetCore.Mvc;
-using BilliardsManagement.Models.ViewModels;
-using BilliardsManagement.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using BilliardsManagement.Models.Entities;
+using BilliardsManagement.Models.ViewModels;
 
-namespace BilliardsManagement.Controllers
+namespace BilliardsManagement.Controllers;
+
+public class ServingController : Controller
 {
-    public class ServingController : Controller
+    private readonly BilliardsDbContext _context;
+
+    public ServingController(BilliardsDbContext context)
     {
-        private readonly BilliardsDbContext _context;
+        _context = context;
+    }
 
-        public ServingController(BilliardsDbContext context)
+    public async Task<IActionResult> Index()
+    {
+        var role = HttpContext.Session.GetString("Role")?.ToUpper();
+        if (role != "SERVING")
         {
-            _context = context;
+            return RedirectToAction("Login", "Account");
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Index()
+        var tables = await _context.Tables
+            .Include(t => t.Sessions.Where(s => s.EndTime == null))
+            .ToListAsync();
+
+        return View(tables);
+    }
+
+    public async Task<IActionResult> Table(int id)
+    {
+        var model = new ServingOrderViewModel
         {
-            var today = DateTime.Today;
-            var now = DateTime.Now;
-            
-            // Get active sessions first - including those that haven't ended yet
-            var activeSessions = await _context.Sessions
-                .Include(s => s.Table)
-                .Where(s => s.EndTime == null || s.EndTime > now)
+            TableId = id,
+            TableName = await _context.Tables
+                .Where(t => t.TableId == id)
+                .Select(t => t.TableName)
+                .FirstOrDefaultAsync() ?? string.Empty,
+            AvailableProducts = await _context.Products
+                .Where(p => (p.ProductType == ProductType.FOOD || p.ProductType == ProductType.BEVERAGE) 
+                           && p.Status == "AVAILABLE")
+                .ToListAsync(),
+            SessionId = await _context.Sessions
+                .Where(s => s.TableId == id && s.EndTime == null)
+                .Select(s => s.SessionId)
+                .FirstOrDefaultAsync()
+        };
+
+        if (model.SessionId.HasValue)
+        {
+            var currentOrders = await _context.OrderDetails
+                .Include(od => od.Order)
+                .Include(od => od.Product)
+                .Where(od => od.Order != null && od.Order.SessionId == model.SessionId)
                 .ToListAsync();
 
-            // Get all tables and update their status based on active sessions
-            var tables = await _context.Tables.ToListAsync();
-            foreach (var table in tables)
-            {
-                if (activeSessions.Any(s => s.TableId == table.TableId))
-                {
-                    // If table has an active session, ensure it's marked as in use
-                    table.Status = "IN_USE";
-                }
-            }
-
-            var model = new WaiterDashboardViewModel
-            {
-                Tables = tables,
-                ActiveSessions = activeSessions,
-                RecentOrders = await _context.Orders
-                    .Include(o => o.Session!).ThenInclude(s => s!.Table)
-                    .Where(o => o.CreatedAt != null && o.CreatedAt.Value.Date == today)
-                    .OrderByDescending(o => o.CreatedAt)
-                    .Take(5)
-                    .ToListAsync() ?? new List<Order>()
-            };
-
-            // Calculate table statistics
-            model.AvailableTableCount = model.Tables.Count(t => t.Status == "AVAILABLE");
-            model.OccupiedTableCount = model.Tables.Count(t => t.Status == "IN_USE");
-            model.BookedTableCount = model.Tables.Count(t => t.Status == "BOOKED");
-
-            // Calculate today's revenue
-            var todayInvoices = await _context.Invoices
-                .Where(o => o.PaymentTime != null && o.PaymentTime.Value.Date == today)
-                .ToListAsync();
-            model.TodayRevenue = todayInvoices.Sum(i => i.TotalAmount ?? 0);
-
-            await _context.SaveChangesAsync();
-
-            return View(model);
+            model.CurrentOrders = currentOrders;
+            model.TotalAmount = currentOrders.Sum(od => od.UnitPrice * od.Quantity);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Table_Information(int id)
+        return View("Table_Information", model);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddOrder(int tableId, int productId, int quantity)
+    {
+        var session = await _context.Sessions
+            .FirstOrDefaultAsync(s => s.TableId == tableId && s.EndTime == null);
+
+        if (session == null)
+            return Json(new { success = false, message = "Không tìm thấy phiên hoạt động" });
+
+        var product = await _context.Products.FindAsync(productId);
+        if (product == null)
+            return Json(new { success = false, message = "Không tìm thấy sản phẩm" });
+
+        if (product.Quantity < quantity)
+            return Json(new { success = false, message = "Số lượng trong kho không đủ" });
+
+        var employeeIdStr = HttpContext.Session.GetString("EmployeeId");
+        if (string.IsNullOrEmpty(employeeIdStr) || !int.TryParse(employeeIdStr, out var employeeId))
+            return Json(new { success = false, message = "Không xác định được nhân viên" });
+        
+        var order = await _context.Orders
+            .FirstOrDefaultAsync(o => o.SessionId == session.SessionId && o.Status == "PENDING");
+
+        if (order == null)
         {
-            var table = await _context.Tables
-                .FirstOrDefaultAsync(t => t.TableId == id);
-
-            if (table == null)
-                return NotFound();
-
-            var activeSession = await _context.Sessions
-                .Where(s => s.TableId == id && (s.EndTime == null || s.EndTime > DateTime.Now))
-                .Include(s => s.Orders)
-                    .ThenInclude(o => o.OrderDetails)
-                        .ThenInclude(od => od.Product)
-                .FirstOrDefaultAsync();
-
-            var availableProducts = await _context.Products
-                .Where(p => p.Status == "AVAILABLE" && p.Quantity > 0)
-                .ToListAsync();
-
-            var model = new TableInfoViewModel
+            order = new Order
             {
-                TableId = table.TableId,
-                TableName = table.TableName,
-                TableType = table.TableType,
-                Status = table.Status,
-                PricePerHour = table.PricePerHour,
-                AvailableProducts = availableProducts
-            };
-
-            if (activeSession != null)
-            {
-                var now = DateTime.Now;
-                var duration = now - activeSession.StartTime;
-                decimal hours = (decimal)(duration?.TotalHours ?? 0);
-                
-                model.SessionId = activeSession.SessionId;
-                model.StartTime = activeSession.StartTime;
-                model.TotalTime = hours;
-                model.TableTotal = hours * (table.PricePerHour ?? 0);
-                model.Orders = activeSession.Orders.ToList();
-                model.EmployeeId = activeSession.EmployeeId;
-
-                // Calculate total amount (table + products)
-                decimal productsTotal = activeSession.Orders
-                    .SelectMany(o => o.OrderDetails)
-                    .Sum(od => (od.UnitPrice ?? 0) * (od.Quantity ?? 0));
-                model.TotalAmount = model.TableTotal + productsTotal;
-            }
-
-            return View(model);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> StartSession(int tableId)
-        {
-            var table = await _context.Tables.FindAsync(tableId);
-            if (table == null)
-                return NotFound();
-
-            if (table.Status != "AVAILABLE")
-                return BadRequest("Bàn không khả dụng");
-
-            var employeeId = HttpContext.Session.GetInt32("EmployeeId");
-            if (employeeId == null)
-                return BadRequest("Không tìm thấy thông tin nhân viên");
-
-            // Create new session
-            var session = new Session
-            {
-                TableId = tableId,
+                SessionId = session.SessionId,
                 EmployeeId = employeeId,
-                StartTime = DateTime.Now,
+                Status = "PENDING"
             };
-
-            // Update table status
-            table.Status = "IN_USE";
-
-            _context.Sessions.Add(session);
+            _context.Orders.Add(order);
             await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddOrder(int sessionId, int productId, int quantity)
+        var orderDetail = new OrderDetail
         {
-            try
-            {
-                var session = await _context.Sessions
-                    .Include(s => s.Orders)
-                    .FirstOrDefaultAsync(s => s.SessionId == sessionId);
+            OrderId = order.OrderId,
+            ProductId = productId,
+            Quantity = quantity,
+            UnitPrice = product.Price ?? 0
+        };
 
-                if (session == null)
-                    return Json(new { success = false, message = "Không tìm thấy phiên" });
+        product.Quantity = (product.Quantity ?? 0) - quantity;
+        if (product.Quantity <= 0)
+            product.Status = "OUT_OF_STOCK";
 
-                var product = await _context.Products.FindAsync(productId);
-                if (product == null)
-                    return Json(new { success = false, message = "Không tìm thấy sản phẩm" });
+        _context.OrderDetails.Add(orderDetail);
+        await _context.SaveChangesAsync();
 
-                if (product.Quantity < quantity)
-                    return Json(new { success = false, message = "Số lượng sản phẩm không đủ" });
+        return Json(new { success = true });
+    }
 
-                var employeeId = HttpContext.Session.GetInt32("EmployeeId");
-                if (employeeId == null)
-                    return Json(new { success = false, message = "Không tìm thấy thông tin nhân viên" });
+    [HttpPost]
+    public async Task<IActionResult> RemoveOrderDetail(int orderDetailId)
+    {
+        var orderDetail = await _context.OrderDetails
+            .Include(od => od.Product)
+            .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId);
 
-                // Create new order if needed or use existing one
-                var order = session.Orders.FirstOrDefault(o => o.Status == "PENDING") ?? new Order
-                {
-                    SessionId = sessionId,
-                    EmployeeId = employeeId,
-                    CreatedAt = DateTime.Now,
-                    Status = "PENDING"
-                };
+        if (orderDetail == null)
+            return Json(new { success = false, message = "Không tìm thấy chi tiết đơn hàng" });
 
-                if (order.OrderId == 0)
-                {
-                    _context.Orders.Add(order);
-                    await _context.SaveChangesAsync(); // Save to get OrderId
-                }
-
-                // Add order detail
-                var orderDetail = new OrderDetail
-                {
-                    OrderId = order.OrderId,
-                    ProductId = productId,
-                    Quantity = quantity,
-                    UnitPrice = product.Price
-                };
-
-                // Update product quantity
-                product.Quantity -= quantity;
-
-                _context.OrderDetails.Add(orderDetail);
-                await _context.SaveChangesAsync();
-
-                Response.ContentType = "application/json";
-                return new JsonResult(new { 
-                    success = true,
-                    productName = product.ProductName,
-                    price = product.Price,
-                    quantity = quantity,
-                    total = product.Price * quantity
-                });
-            }
-            catch (Exception ex)
-            {
-                // Log the error
-                Console.WriteLine($"Error adding order: {ex.Message}");
-                Response.ContentType = "application/json";
-                return new JsonResult(new { success = false, message = "Có lỗi xảy ra khi thêm sản phẩm. Vui lòng thử lại." });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> GenerateInvoice(int sessionId)
+        if (orderDetail.Product != null)
         {
-            var session = await _context.Sessions
-                .Include(s => s.Table)
-                .Include(s => s.Orders)
-                    .ThenInclude(o => o.OrderDetails)
-                        .ThenInclude(od => od.Product)
-                .FirstOrDefaultAsync(s => s.SessionId == sessionId);
-
-            if (session == null)
-                return NotFound("Không tìm thấy phiên");
-
-            var employeeId = HttpContext.Session.GetInt32("EmployeeId");
-            if (employeeId == null)
-                return BadRequest("Không tìm thấy thông tin nhân viên");
-
-            // Calculate total amount
-            var now = DateTime.Now;
-            var duration = now - session.StartTime;
-            decimal hours = (decimal)(duration?.TotalHours ?? 0);
-            decimal tableTotal = hours * (session.Table?.PricePerHour ?? 0);
-
-            decimal productsTotal = session.Orders
-                .SelectMany(o => o.OrderDetails)
-                .Sum(od => (od.UnitPrice ?? 0) * (od.Quantity ?? 0));
-
-            // Create invoice
-            var invoice = new Invoice
-            {
-                SessionId = sessionId,
-                CashierId = employeeId.Value,
-                TotalAmount = tableTotal + productsTotal,
-                PaymentTime = now,
-                Status = "COMPLETED"
-            };
-
-            // End session
-            session.EndTime = now;
-            session.TableTotal = tableTotal;
-            session.TotalTime = hours;
-
-            // Update table status
-            if (session.Table != null)
-                session.Table.Status = "AVAILABLE";
-
-            // Update order status from PENDING to SERVED
-            foreach (var order in session.Orders)
-                order.Status = "SERVED";
-
-            _context.Invoices.Add(invoice);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
+            orderDetail.Product.Quantity = (orderDetail.Product.Quantity ?? 0) + orderDetail.Quantity;
+            if (orderDetail.Product.Quantity > 0)
+                orderDetail.Product.Status = "AVAILABLE";
         }
+
+        _context.OrderDetails.Remove(orderDetail);
+        await _context.SaveChangesAsync();
+
+        return Json(new { success = true });
     }
 }

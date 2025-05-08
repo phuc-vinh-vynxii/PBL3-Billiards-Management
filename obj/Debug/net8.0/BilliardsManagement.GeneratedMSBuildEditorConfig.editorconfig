@@ -44,8 +44,20 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/University/PBL3/BilliardsManagement/BilliardsManagement/Views/Manager/Equipment.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWFuYWdlclxFcXVpcG1lbnQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/University/PBL3/BilliardsManagement/BilliardsManagement/Views/Manager/FoodAndBeverage.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWFuYWdlclxGb29kQW5kQmV2ZXJhZ2UuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/University/PBL3/BilliardsManagement/BilliardsManagement/Views/Manager/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWFuYWdlclxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/University/PBL3/BilliardsManagement/BilliardsManagement/Views/Manager/TableManagement.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWFuYWdlclxUYWJsZU1hbmFnZW1lbnQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
 [D:/University/PBL3/BilliardsManagement/BilliardsManagement/Views/Serving/Index.cshtml]

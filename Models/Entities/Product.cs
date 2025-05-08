@@ -25,5 +25,7 @@ public partial class Product
 
     public int? Quantity { get; set; }
 
+    public ProductType ProductType { get; set; }
+
     public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
 }
