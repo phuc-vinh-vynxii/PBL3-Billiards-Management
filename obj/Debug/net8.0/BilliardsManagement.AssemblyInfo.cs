@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BilliardsManagement")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+708cd276816469cea1b1b878d0b7ad10dbdd8707")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d88ffa1d78cf632c1e08a1b5c8bfdbe83a91eaff")]
 [assembly: System.Reflection.AssemblyProductAttribute("BilliardsManagement")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BilliardsManagement")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
