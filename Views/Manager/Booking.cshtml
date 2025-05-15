@@ -1,0 +1,651 @@
+@model BilliardsManagement.Models.ViewModels.BookingViewModel
+@{
+    ViewData["Title"] = "Quản lý đặt bàn";
+    Layout = "_Layout";
+    var statusColors = new Dictionary<string, string>
+    {
+        { "AVAILABLE", "bg-success" },
+        { "IN_USE", "bg-primary" },
+        { "MAINTENANCE", "bg-warning" },
+        { "BROKEN", "bg-danger" },
+        { "BOOKED", "bg-info" }
+    };
+}
+
+<!-- Thêm tham chiếu tới file JavaScript cho bộ đếm thời gian -->
+<script src="~/js/booking/timer.js"></script>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <a asp-controller="Manager" asp-action="Index" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left me-2"></i>Quay lại
+            </a>
+            <h2 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Quản lý đặt bàn</h2>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Table Status Grid -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Trạng thái bàn</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        @foreach (var table in Model.Tables)
+                        {
+                            var isInUse = table.Sessions.Any(s => s.EndTime == null);
+                            var isBooked = table.Reservations.Any(r => r.Status == "CONFIRMED" && r.EndTime > DateTime.Now);
+                            var statusColor = isInUse ? "bg-primary" : 
+                                              isBooked ? "bg-info" : 
+                                              statusColors.ContainsKey(table.Status) ? statusColors[table.Status] : "bg-secondary";
+                            var statusText = isInUse ? "Đang sử dụng" : 
+                                            isBooked ? "Đã đặt" : 
+                                            table.Status switch
+                                            {
+                                                "AVAILABLE" => "Trống",
+                                                "MAINTENANCE" => "Bảo trì",
+                                                "BROKEN" => "Hỏng",
+                                                _ => "Không xác định"
+                                            };
+                            
+                            <div class="col-md-3">
+                                <div class="card @statusColor text-white">
+                                    <div class="card-body p-3 text-center">
+                                        <h5 class="card-title mb-0">@table.TableName</h5>
+                                        <div class="mt-2">
+                                            <span class="badge bg-white text-dark">@statusText</span>
+                                            <span class="badge bg-warning text-dark border border-dark">@table.TableType</span>
+                                        </div>
+                                        <div class="mt-3">
+                                            @if (isInUse)
+                                            {
+                                                var activeSession = table.Sessions.FirstOrDefault(s => s.EndTime == null);
+                                                var sessionStartTime = activeSession?.StartTime;
+                                                var sessionId = activeSession?.SessionId;
+                                                <div class="mb-2 timer-container">
+                                                    <div class="d-flex justify-content-center align-items-center mb-2">
+                                                        <i class="bi bi-stopwatch me-1"></i>
+                                                        <span class="table-timer" 
+                                                              data-start-time="@(sessionStartTime?.ToString("yyyy-MM-ddTHH:mm:ss") ?? DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"))"
+                                                              data-price-per-hour="@table.PricePerHour"
+                                                              data-table-id="@table.TableId">
+                                                            00:00:00
+                                                        </span>
+                                                    </div>
+                                                    <div class="mb-2 text-center">
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="bi bi-cash-coin me-1"></i>
+                                                            <span class="table-cost" data-table-id="@table.TableId">0 VND</span>
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <a href="@Url.Action("TableService", new { tableId = table.TableId, sessionId = sessionId })" 
+                                                           class="btn btn-sm btn-primary border border-dark border-2 me-1">
+                                                            <i class="bi bi-cart-plus"></i> Thêm dịch vụ
+                                                        </a>
+                                                        <form asp-action="EndSession" method="post" class="d-inline">
+                                                            <input type="hidden" name="sessionId" value="@sessionId" />
+                                                            <button type="submit" class="btn btn-sm btn-danger border border-dark border-2" 
+                                                                    onclick="return confirm('Bạn có chắc muốn kết thúc phiên sử dụng này?')">
+                                                                <i class="bi bi-stop-fill"></i> Kết thúc
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else if (isBooked)
+                                            {
+                                                var reservation = table.Reservations.FirstOrDefault();
+                                                <div>
+                                                    <button class="btn btn-sm btn-light me-2" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#bookTableModal"
+                                                            data-table-id="@table.TableId" 
+                                                            data-table-name="@table.TableName">
+                                                        <i class="bi bi-calendar-plus"></i> Đặt bàn
+                                                    </button>
+                                                    @if (reservation != null)
+                                                    {
+                                                        <form asp-action="StartSession" method="post" class="d-inline">
+                                                            <input type="hidden" name="tableId" value="@table.TableId" />
+                                                            <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+                                                            <input type="hidden" name="customerId" value="@reservation.CustomerId" />
+                                                            <button type="submit" class="btn btn-sm btn-success border border-dark border-2">
+                                                                <i class="bi bi-play-fill"></i> Bắt đầu
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (table.Status == "AVAILABLE")
+                                            {
+                                                <div>
+                                                    <button class="btn btn-sm btn-light me-2" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#bookTableModal"
+                                                            data-table-id="@table.TableId" 
+                                                            data-table-name="@table.TableName">
+                                                        <i class="bi bi-calendar-plus"></i> Đặt bàn
+                                                    </button>
+                                                    <form asp-action="StartSession" method="post" class="d-inline">
+                                                        <input type="hidden" name="tableId" value="@table.TableId" />
+                                                        <button type="submit" class="btn btn-sm btn-success border border-dark border-2">
+                                                            <i class="bi bi-play-fill"></i> Bắt đầu
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-dark">Bàn không khả dụng</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div class="card d-none">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Lịch đặt bàn</h5>
+                </div>
+                <div class="card-body">
+                    <div id="bookingCalendar" style="height: 600px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservations List -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Lịch đặt sắp tới</h5>
+                </div>
+                <div class="card-body p-0" id="reservationsContainer">
+                    <partial name="_ReservationsList" model="Model.Reservations" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Book Table Modal -->
+<div class="modal fade" id="bookTableModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Đặt bàn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreateReservation" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="tableId" id="bookTableId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Bàn</label>
+                        <input type="text" class="form-control" id="bookTableName" readonly />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Khách hàng</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="customerSearch" 
+                                   placeholder="Tìm kiếm theo SĐT hoặc tên..." autocomplete="off">
+                            <button type="button" class="btn btn-primary" onclick="showNewCustomerForm()">
+                                <i class="bi bi-plus"></i> Thêm mới
+                            </button>
+                        </div>
+                        <div id="customerSearchResults" class="list-group mt-2 d-none">
+                        </div>
+                        <input type="hidden" name="customerId" id="selectedCustomerId" required>
+                        <div id="selectedCustomerInfo" class="mt-2 d-none">
+                            <div class="card">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0" id="selectedCustomerName"></h6>
+                                            <small class="text-muted" id="selectedCustomerPhone"></small>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSelectedCustomer()">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ngày đặt</label>
+                        <input type="date" name="bookingDate" class="form-control" required 
+                               value="@DateTime.Now.ToString("yyyy-MM-dd")" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">Giờ bắt đầu</label>
+                            <input type="time" name="startTimeStr" class="form-control" required 
+                                   value="@DateTime.Now.ToString("HH:mm")" />
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Giờ kết thúc</label>
+                            <input type="time" name="endTimeStr" class="form-control" required 
+                                   value="@DateTime.Now.AddHours(2).ToString("HH:mm")" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ghi chú</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Đặt bàn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- New Customer Modal -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Thêm khách hàng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="newCustomerForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Họ và tên</label>
+                        <input type="text" name="fullName" class="form-control" required 
+                               placeholder="Nhập họ và tên khách hàng">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="tel" name="phone" class="form-control" required
+                               pattern="^(0|\+84)[3|5|7|8|9][0-9]{8}$"
+                               title="Số điện thoại không đúng định dạng (VD: 0912345678 hoặc +84912345678)"
+                               placeholder="Nhập số điện thoại">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Thêm khách hàng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Đảm bảo trang web đã tải hoàn toàn
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM đã tải xong, bắt đầu cài đặt timers...");
+            
+            // Khởi tạo tất cả đồng hồ đếm
+            initializeTableTimers();
+            
+            // Đặt interval để cập nhật đồng hồ mỗi giây
+            console.log("Bắt đầu interval để cập nhật đồng hồ...");
+            const timerInterval = setInterval(updateAllTimers, 1000);
+            console.log("Interval đã được thiết lập:", timerInterval);
+            
+            // Các mã khởi tạo khác...
+            // Khởi tạo modal và các sự kiện
+            const bookTableModal = document.getElementById('bookTableModal');
+            if (bookTableModal) {
+                bookTableModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const tableId = button.getAttribute('data-table-id');
+                    const tableName = button.getAttribute('data-table-name');
+                    
+                    document.getElementById('bookTableId').value = tableId;
+                    document.getElementById('bookTableName').value = tableName;
+                    
+                    // Xóa lựa chọn khách hàng
+                    clearSelectedCustomer();
+                });
+            } else {
+                console.error("Không tìm thấy phần tử bookTableModal");
+            }
+            
+            // Làm mới danh sách đặt bàn ban đầu
+            refreshReservationsList();
+            setInterval(refreshReservationsList, 30000); // Cập nhật mỗi 30 giây
+        });
+        
+        // Khởi tạo đồng hồ đếm cho bàn
+        function initializeTableTimers() {
+            console.log("Đang khởi tạo đồng hồ đếm cho các bàn...");
+            const timerElements = document.querySelectorAll('.table-timer');
+            console.log("Tìm thấy", timerElements.length, "đồng hồ đếm");
+            
+            timerElements.forEach((timer, index) => {
+                console.log(`Đang khởi tạo đồng hồ #${index+1}`);
+                updateTimer(timer);
+            });
+        }
+        
+        // Cập nhật tất cả đồng hồ đếm
+        function updateAllTimers() {
+            // console.log("Đang cập nhật tất cả đồng hồ đếm...");
+            const timerElements = document.querySelectorAll('.table-timer');
+            timerElements.forEach(timer => {
+                updateTimer(timer);
+            });
+        }
+        
+        // Cập nhật một đồng hồ đếm
+        function updateTimer(timerElement) {
+            try {
+                const startTimeStr = timerElement.getAttribute('data-start-time');
+                const pricePerHour = parseFloat(timerElement.getAttribute('data-price-per-hour') || 0);
+                const tableId = timerElement.getAttribute('data-table-id');
+                
+                if (!startTimeStr) {
+                    console.error("Không tìm thấy thời gian bắt đầu cho đồng hồ", tableId);
+                    return;
+                }
+                
+                // console.log(`Bàn ${tableId} - Thời gian bắt đầu: ${startTimeStr}, Giá/giờ: ${pricePerHour}`);
+                
+                const startTime = new Date(startTimeStr);
+                const now = new Date();
+                const elapsedMs = now - startTime;
+                
+                // Không cập nhật nếu ngày không hợp lệ
+                if (isNaN(startTime.getTime()) || isNaN(now.getTime())) {
+                    console.error(`Thời gian không hợp lệ - Bắt đầu: ${startTimeStr}, Hiện tại: ${now}`);
+                    return;
+                }
+                
+                // Tính giờ, phút, giây
+                const elapsedSeconds = Math.floor(elapsedMs / 1000);
+                const hours = Math.floor(elapsedSeconds / 3600);
+                const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+                const seconds = elapsedSeconds % 60;
+                
+                // Định dạng dưới dạng HH:MM:SS
+                const timeString = 
+                    String(hours).padStart(2, '0') + ':' + 
+                    String(minutes).padStart(2, '0') + ':' + 
+                    String(seconds).padStart(2, '0');
+                
+                // console.log(`Bàn ${tableId} - Thời gian trôi qua: ${timeString}`);
+                timerElement.textContent = timeString;
+                
+                // Tính chi phí (không làm tròn lên đến giờ tiếp theo, tính chính xác theo thời gian sử dụng)
+                if (pricePerHour > 0) {
+                    const totalHours = elapsedMs / (1000 * 60 * 60);
+                    const cost = totalHours * pricePerHour;
+                    
+                    // Định dạng theo đơn vị tiền tệ VND
+                    const costString = formatCurrency(cost);
+                    
+                    // Cập nhật hiển thị chi phí
+                    const costElement = document.querySelector(`.table-cost[data-table-id="${tableId}"]`);
+                    if (costElement) {
+                        costElement.textContent = costString;
+                    } else {
+                        console.error(`Không tìm thấy phần tử hiển thị chi phí cho bàn ${tableId}`);
+                    }
+                }
+            } catch (error) {
+                console.error("Lỗi khi cập nhật đồng hồ:", error);
+            }
+        }
+        
+        // Hàm định dạng tiền tệ
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND',
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+        
+        // Tìm kiếm khách hàng
+        let searchTimeout;
+        const customerSearchInput = document.getElementById('customerSearch');
+        if (customerSearchInput) {
+            customerSearchInput.addEventListener('input', function(e) {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    document.getElementById('customerSearchResults').classList.add('d-none');
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    fetch(`/Manager/SearchCustomers?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(customers => {
+                            const resultsDiv = document.getElementById('customerSearchResults');
+                            resultsDiv.innerHTML = '';
+                            
+                            if (customers.length === 0) {
+                                resultsDiv.innerHTML = `
+                                    <div class="list-group-item text-center text-muted">
+                                        Không tìm thấy khách hàng
+                                    </div>`;
+                            } else {
+                                customers.forEach(customer => {
+                                    const item = document.createElement('button');
+                                    item.type = 'button';
+                                    item.className = 'list-group-item list-group-item-action';
+                                    item.innerHTML = `
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div>${customer.fullName}</div>
+                                                <small class="text-muted">${customer.phone}</small>
+                                            </div>
+                                        </div>`;
+                                    item.onclick = () => selectCustomer(customer);
+                                    resultsDiv.appendChild(item);
+                                });
+                            }
+                            
+                            resultsDiv.classList.remove('d-none');
+                        });
+                }, 300);
+            });
+        }
+
+        // Xử lý lựa chọn khách hàng
+        function selectCustomer(customer) {
+            console.log("Đang chọn khách hàng:", customer);
+            if (!customer || typeof customer.customerId === 'undefined') {
+                console.error("Khách hàng không hợp lệ hoặc thiếu customerId");
+                return;
+            }
+            
+            document.getElementById('selectedCustomerId').value = customer.customerId;
+            document.getElementById('selectedCustomerName').textContent = customer.fullName || '';
+            document.getElementById('selectedCustomerPhone').textContent = customer.phone || '';
+            document.getElementById('selectedCustomerInfo').classList.remove('d-none');
+            document.getElementById('customerSearchResults').classList.add('d-none');
+            document.getElementById('customerSearch').value = '';
+            
+            console.log("Đã đặt ID khách hàng thành:", document.getElementById('selectedCustomerId').value);
+        }
+
+        function clearSelectedCustomer() {
+            document.getElementById('selectedCustomerId').value = '';
+            document.getElementById('selectedCustomerInfo').classList.add('d-none');
+            document.getElementById('customerSearch').value = '';
+            document.getElementById('customerSearchResults').classList.add('d-none');
+        }
+
+        // Hiển thị form khách hàng mới
+        function showNewCustomerForm() {
+            const modal = new bootstrap.Modal(document.getElementById('newCustomerModal'));
+            modal.show();
+        }
+
+        // Xử lý gửi form khách hàng mới
+        const newCustomerForm = document.getElementById('newCustomerForm');
+        if (newCustomerForm) {
+            newCustomerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = {
+                    fullName: this.querySelector('[name="fullName"]').value,
+                    phone: this.querySelector('[name="phone"]').value
+                };
+
+                fetch('/Manager/CreateCustomer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+                    
+                    // Chọn khách hàng mới tạo
+                    selectCustomer(data);
+                    
+                    // Đóng modal
+                    bootstrap.Modal.getInstance(document.getElementById('newCustomerModal')).hide();
+                    
+                    // Reset form
+                    e.target.reset();
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    alert('Có lỗi xảy ra khi tạo khách hàng mới');
+                });
+            });
+        }
+        
+        // Kiểm tra hợp lệ trước khi gửi form
+        document.addEventListener('DOMContentLoaded', function() {
+            const reservationForm = document.querySelector('form[asp-action="CreateReservation"]');
+            if (reservationForm) {
+                reservationForm.addEventListener('submit', function(event) {
+                    // Kiểm tra lựa chọn khách hàng
+                    const selectedCustomerId = document.getElementById('selectedCustomerId').value;
+                    console.log("Gửi form - ID khách hàng đã chọn:", selectedCustomerId);
+                    
+                    if (!selectedCustomerId || selectedCustomerId === "0" || selectedCustomerId === "") {
+                        event.preventDefault();
+                        alert('Vui lòng chọn khách hàng');
+                        return;
+                    }
+                    
+                    const bookingDate = this.querySelector('[name="bookingDate"]').value;
+                    const startTimeStr = this.querySelector('[name="startTimeStr"]').value;
+                    const endTimeStr = this.querySelector('[name="endTimeStr"]').value;
+                    
+                    if (!bookingDate || !startTimeStr || !endTimeStr) {
+                        event.preventDefault();
+                        alert('Vui lòng nhập đầy đủ thông tin ngày và giờ');
+                        return;
+                    }
+                    
+                    try {
+                        // Kiểm tra cơ bản - việc phân tích sẽ được thực hiện trên máy chủ
+                        const [startHours, startMinutes] = startTimeStr.split(':').map(Number);
+                        const [endHours, endMinutes] = endTimeStr.split(':').map(Number);
+                        
+                        const bookingDateObj = new Date(bookingDate);
+                        if (isNaN(bookingDateObj.getTime())) {
+                            event.preventDefault();
+                            alert('Ngày đặt bàn không hợp lệ');
+                            return;
+                        }
+                        
+                        const startTimeObj = new Date(bookingDateObj);
+                        startTimeObj.setHours(startHours, startMinutes, 0, 0);
+                        
+                        const endTimeObj = new Date(bookingDateObj);
+                        endTimeObj.setHours(endHours, endMinutes, 0, 0);
+                        
+                        // Kiểm tra phía khách hàng
+                        const now = new Date();
+                        
+                        if (endTimeObj <= startTimeObj) {
+                            event.preventDefault();
+                            alert('Thời gian kết thúc phải sau thời gian bắt đầu');
+                            return;
+                        }
+                        
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const selectedDate = new Date(bookingDate);
+                        selectedDate.setHours(0, 0, 0, 0);
+                        
+                        if (selectedDate.getTime() === today.getTime() && startTimeObj < now) {
+                            event.preventDefault();
+                            alert('Không thể đặt thời gian trong quá khứ');
+                            return;
+                        }
+                        
+                        const durationMs = endTimeObj - startTimeObj;
+                        const durationMinutes = durationMs / (1000 * 60);
+                        if (durationMinutes < 30) {
+                            event.preventDefault();
+                            alert('Thời gian đặt bàn phải ít nhất 30 phút');
+                            return;
+                        }
+                        
+                    } catch (error) {
+                        event.preventDefault();
+                        console.error('Lỗi khi kiểm tra ngày/giờ:', error);
+                        alert('Định dạng ngày giờ không hợp lệ. Vui lòng kiểm tra lại.');
+                    }
+                });
+            }
+            
+            // Khởi tạo lịch
+            try {
+                const calendarEl = document.getElementById('bookingCalendar');
+                if (calendarEl) {
+                    // ... mã lịch hiện tại ...
+                } else {
+                    console.log("Không tìm thấy phần tử lịch");
+                }
+            } catch (error) {
+                console.error("Lỗi khi khởi tạo lịch:", error);
+            }
+        });
+        
+        // Định nghĩa hàm làm mới danh sách đặt bàn
+        window.refreshReservationsList = function() {
+            // ... Mã hiện tại cho làm mới danh sách đặt bàn ...
+        };
+    </script>
+}

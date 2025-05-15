@@ -21,6 +21,10 @@
       "PackagePath": "staticwebassets\\images\\billiards-table-booked.png"
     },
     {
+      "Id": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\booking\\timer.js",
+      "PackagePath": "staticwebassets\\js\\booking\\timer.js"
+    },
+    {
       "Id": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\serving.js",
       "PackagePath": "staticwebassets\\js\\serving.js"
     },

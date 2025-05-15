@@ -1,10 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using BilliardsManagement.Models.Entities;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        // Xử lý vòng lặp tham chiếu trong JSON
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
+
 builder.Services.AddSession();
 builder.Services.AddDbContext<BilliardsDbContext>(options =>
 {

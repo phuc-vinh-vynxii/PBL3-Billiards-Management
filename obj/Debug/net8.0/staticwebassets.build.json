@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "KG9EOAoT6Kz0mKUNHgvXSvv6wPhxX0Fkf8QOstJtl0o=",
+  "Hash": "QuZC70ALsl2UUHNQAesqukjnlYhxYX75jtj7Fb5UhDk=",
   "Source": "BilliardsManagement",
   "BasePath": "_content/BilliardsManagement",
   "Mode": "Default",
@@ -141,6 +141,27 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\images\\billiards-table-booked.png"
+    },
+    {
+      "Identity": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\booking\\timer.js",
+      "SourceId": "BilliardsManagement",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\",
+      "BasePath": "_content/BilliardsManagement",
+      "RelativePath": "js/booking/timer#[.{fingerprint}]?.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "v7v1bjej8x",
+      "Integrity": "SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\booking\\timer.js"
     },
     {
       "Identity": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\serving.js",
@@ -1872,6 +1893,88 @@
         {
           "Name": "integrity",
           "Value": "sha256-n03jc8gGk2jgFXmDWtQ+txvpwIZ3bTegs/nNP+mIxCU="
+        }
+      ]
+    },
+    {
+      "Route": "js/booking/timer.js",
+      "AssetFile": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\booking\\timer.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4561"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 14 May 2025 18:31:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q="
+        }
+      ]
+    },
+    {
+      "Route": "js/booking/timer.v7v1bjej8x.js",
+      "AssetFile": "D:\\University\\PBL3\\BilliardsManagement\\BilliardsManagement\\wwwroot\\js\\booking\\timer.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4561"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 14 May 2025 18:31:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "v7v1bjej8x"
+        },
+        {
+          "Name": "label",
+          "Value": "js/booking/timer.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q="
         }
       ]
     },

@@ -413,6 +413,88 @@
       ]
     },
     {
+      "Route": "js/booking/timer.js",
+      "AssetFile": "js/booking/timer.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4561"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 14 May 2025 18:31:01 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q="
+        }
+      ]
+    },
+    {
+      "Route": "js/booking/timer.v7v1bjej8x.js",
+      "AssetFile": "js/booking/timer.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4561"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 14 May 2025 18:31:01 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "v7v1bjej8x"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-SwtDaTbmA7giW2A6bRLyH9ocO4L+vwaQNNSYmcJAf2Q="
+        },
+        {
+          "Name": "label",
+          "Value": "js/booking/timer.js"
+        }
+      ]
+    },
+    {
       "Route": "js/serving.1c35zlng4i.js",
       "AssetFile": "js/serving.js",
       "Selectors": [],

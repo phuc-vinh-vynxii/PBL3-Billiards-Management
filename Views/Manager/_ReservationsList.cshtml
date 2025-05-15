@@ -1,0 +1,64 @@
+@model IEnumerable<BilliardsManagement.Models.Entities.Reservation>
+
+<div class="list-group list-group-flush">
+    @{
+        // Lọc chỉ hiển thị các đặt bàn CONFIRMED và chưa hết hạn
+        var upcomingReservations = Model.Where(r => r.Status == "CONFIRMED" && r.EndTime > DateTime.Now).ToList();
+    }
+    
+    @if (!upcomingReservations.Any())
+    {
+        <div class="list-group-item text-center py-4">
+            <i class="bi bi-calendar-x display-6"></i>
+            <p class="mt-3">Không có lịch đặt bàn sắp tới</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var reservation in upcomingReservations.OrderBy(r => r.StartTime))
+        {
+            var isImminent = reservation.StartTime <= DateTime.Now.AddMinutes(30);
+            
+            <div class="list-group-item @(isImminent ? "bg-light" : "")">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-1">
+                        <i class="bi bi-table me-2"></i>
+                        @reservation.Table?.TableName
+                    </h6>
+                    <span class="badge bg-success">
+                        Đã xác nhận
+                    </span>
+                </div>
+                <p class="mb-1">
+                    <i class="bi bi-person me-2"></i>
+                    @(reservation.Customer?.FullName ?? "Khách hàng")
+                </p>
+                <p class="mb-1">
+                    <i class="bi bi-clock me-2"></i>
+                    @reservation.StartTime?.ToString("dd/MM/yyyy HH:mm") - @reservation.EndTime?.ToString("HH:mm")
+                </p>
+                
+                <div class="d-flex mt-2">
+                    <form asp-action="CancelReservation" method="post" class="d-inline me-2">
+                        <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                onclick="return confirm('Bạn có chắc chắn muốn hủy đặt bàn này?')">
+                            <i class="bi bi-x-circle"></i> Hủy
+                        </button>
+                    </form>
+                    @if (isImminent)
+                    {
+                        <form asp-action="StartSession" method="post" class="d-inline">
+                            <input type="hidden" name="tableId" value="@reservation.TableId" />
+                            <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+                            <input type="hidden" name="customerId" value="@reservation.CustomerId" />
+                            <button type="submit" class="btn btn-sm btn-success border border-dark border-2">
+                                <i class="bi bi-play-fill"></i> Bắt đầu sử dụng
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>

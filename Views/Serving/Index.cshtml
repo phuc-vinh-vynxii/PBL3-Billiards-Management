@@ -5,7 +5,12 @@
 }
 
 <div class="container-fluid mt-4">
-    <h2 class="mb-4"><i class="bi bi-table me-2"></i>Quản lý bàn</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-table me-2"></i>Quản lý bàn</h2>
+        <a asp-controller="Manager" asp-action="Booking" class="btn btn-success">
+            <i class="bi bi-calendar-plus me-2"></i>Đặt bàn
+        </a>
+    </div>
 
     <div class="row">
         @foreach (var table in Model)
@@ -38,9 +43,32 @@
                             <div>
                                 <small class="text-muted">Giá: @table.PricePerHour?.ToString("N0") đ/giờ</small>
                             </div>
-                            <a href="@Url.Action("Table", new { id = table.TableId })" class="btn btn-primary btn-sm">
-                                <i class="bi bi-box-arrow-in-right me-1"></i>Chi tiết
-                            </a>
+                            <div>
+                                @if (!isActive)
+                                {
+                                    <a href="@Url.Action("StartTable", new { id = table.TableId })" class="btn btn-success btn-sm me-1">
+                                        <i class="bi bi-play-fill me-1"></i>Bắt đầu
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary btn-sm me-1" 
+                                            onclick="openServiceModal(@table.TableId, '@table.TableName', @activeSession.SessionId)">
+                                        <i class="bi bi-cart-plus me-1"></i>Thêm dịch vụ
+                                    </button>
+                                    <a href="@Url.Action("EndSession", new { sessionId = activeSession.SessionId })" 
+                                       class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Bạn có chắc chắn muốn kết thúc phiên sử dụng bàn này?')">
+                                        <i class="bi bi-stop-fill me-1"></i>Kết thúc
+                                    </a>
+                                }
+                                @if (!isActive)
+                                {
+                                    <a href="@Url.Action("Table", new { id = table.TableId })" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i>Chi tiết
+                                    </a>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -48,18 +76,96 @@
         }
     </div>
 
-    <!-- Table Information Modal -->
-    <div class="modal fade" id="tableInfoModal" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Add Service Modal -->
+    <div class="modal fade" id="addServiceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Thông tin bàn</h5>
+                    <h5 class="modal-title">Thêm dịch vụ - <span id="modalTableName"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="table-info-content">
-                        <!-- Content will be loaded dynamically -->
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" id="searchProducts" class="form-control" placeholder="Tìm kiếm món...">
+                        </div>
                     </div>
+                    
+                    <ul class="nav nav-tabs mb-3" id="productTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#foodTab" data-bs-toggle="tab">Đồ ăn</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#drinksTab" data-bs-toggle="tab">Đồ uống</a>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="foodTab">
+                            <div class="table-responsive">
+                                <table class="table" id="foodTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên món</th>
+                                            <th>Giá</th>
+                                            <th>Còn lại</th>
+                                            <th>Số lượng</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Food items will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="drinksTab">
+                            <div class="table-responsive">
+                                <table class="table" id="drinksTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên món</th>
+                                            <th>Giá</th>
+                                            <th>Còn lại</th>
+                                            <th>Số lượng</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Drink items will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <h5>Đơn hàng hiện tại</h5>
+                    <div class="table-responsive">
+                        <table class="table" id="currentOrderTable">
+                            <thead>
+                                <tr>
+                                    <th>Tên món</th>
+                                    <th>Số lượng</th>
+                                    <th>Thành tiền</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Current order items will be loaded here -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="2" class="text-end"><strong>Tổng cộng:</strong></td>
+                                    <td colspan="2"><strong id="orderTotal">0 đ</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </div>
@@ -68,13 +174,187 @@
 
 @section Scripts {
     <script>
+        let currentTableId = 0;
+        let currentSessionId = 0;
+        let addServiceModal;
+        
         document.addEventListener('DOMContentLoaded', function() {
-            const tableInfoModal = new bootstrap.Modal(document.getElementById('tableInfoModal'));
+            addServiceModal = new bootstrap.Modal(document.getElementById('addServiceModal'));
+            
+            // Search functionality
+            document.getElementById('searchProducts').addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const tables = document.querySelectorAll('#foodTable tbody tr, #drinksTable tbody tr');
+                
+                tables.forEach(row => {
+                    const productName = row.querySelector('td:first-child').textContent.toLowerCase();
+                    if (productName.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
             
             // Update view periodically
             setInterval(function() {
                 window.location.reload();
             }, 60000); // Refresh every minute
         });
+        
+        function openServiceModal(tableId, tableName, sessionId) {
+            currentTableId = tableId;
+            currentSessionId = sessionId;
+            
+            // Set table name in modal
+            document.getElementById('modalTableName').textContent = tableName;
+            
+            // Load available products
+            loadAvailableProducts();
+            
+            // Load current order
+            loadCurrentOrder();
+            
+            // Show modal
+            addServiceModal.show();
+        }
+        
+        function loadAvailableProducts() {
+            // Clear existing data
+            document.querySelector('#foodTable tbody').innerHTML = '';
+            document.querySelector('#drinksTable tbody').innerHTML = '';
+            
+            // Fetch products from server
+            fetch('/Serving/GetAvailableProducts')
+                .then(response => response.json())
+                .then(data => {
+                    // Process food items
+                    const foodItems = data.filter(p => p.productType === 'FOOD');
+                    const foodTableBody = document.querySelector('#foodTable tbody');
+                    
+                    foodItems.forEach(item => {
+                        const row = createProductRow(item);
+                        foodTableBody.appendChild(row);
+                    });
+                    
+                    // Process drink items
+                    const drinkItems = data.filter(p => p.productType === 'BEVERAGE');
+                    const drinksTableBody = document.querySelector('#drinksTable tbody');
+                    
+                    drinkItems.forEach(item => {
+                        const row = createProductRow(item);
+                        drinksTableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error loading products:', error));
+        }
+        
+        function createProductRow(product) {
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td>${product.productName}</td>
+                <td>${product.price?.toLocaleString('vi-VN')} đ</td>
+                <td>${product.quantity}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm" min="1" max="${product.quantity}" value="1">
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="addToOrder(${product.productId}, this.parentElement.previousElementSibling.querySelector('input').value)">
+                        <i class="bi bi-plus-circle me-1"></i>Thêm
+                    </button>
+                </td>
+            `;
+            
+            return row;
+        }
+        
+        function loadCurrentOrder() {
+            // Clear existing data
+            document.querySelector('#currentOrderTable tbody').innerHTML = '';
+            
+            // Fetch current order from server
+            fetch(`/Serving/GetCurrentOrder?sessionId=${currentSessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const orderTableBody = document.querySelector('#currentOrderTable tbody');
+                    let total = 0;
+                    
+                    if (data.length === 0) {
+                        const emptyRow = document.createElement('tr');
+                        emptyRow.innerHTML = `<td colspan="4" class="text-center">Chưa có sản phẩm nào</td>`;
+                        orderTableBody.appendChild(emptyRow);
+                    } else {
+                        data.forEach(item => {
+                            const row = document.createElement('tr');
+                            const itemTotal = item.quantity * item.unitPrice;
+                            total += itemTotal;
+                            
+                            row.innerHTML = `
+                                <td>${item.productName}</td>
+                                <td>${item.quantity}</td>
+                                <td>${itemTotal.toLocaleString('vi-VN')} đ</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" onclick="removeFromOrder(${item.orderDetailId})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            `;
+                            
+                            orderTableBody.appendChild(row);
+                        });
+                    }
+                    
+                    // Update total
+                    document.getElementById('orderTotal').textContent = total.toLocaleString('vi-VN') + ' đ';
+                })
+                .catch(error => console.error('Error loading current order:', error));
+        }
+        
+        function addToOrder(productId, quantity) {
+            fetch('/Serving/AddOrder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `tableId=${currentTableId}&productId=${productId}&quantity=${quantity}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload current order
+                    loadCurrentOrder();
+                    // Reload available products
+                    loadAvailableProducts();
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra');
+                }
+            })
+            .catch(error => console.error('Error adding to order:', error));
+        }
+        
+        function removeFromOrder(orderDetailId) {
+            if (!confirm('Bạn có chắc chắn muốn xóa món này?')) return;
+            
+            fetch('/Serving/RemoveOrderDetail', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `orderDetailId=${orderDetailId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload current order
+                    loadCurrentOrder();
+                    // Reload available products
+                    loadAvailableProducts();
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra');
+                }
+            })
+            .catch(error => console.error('Error removing from order:', error));
+        }
     </script>
 }

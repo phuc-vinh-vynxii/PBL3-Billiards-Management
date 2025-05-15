@@ -60,6 +60,18 @@
       <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-n03jc8gGk2jgFXmDWtQ\u002BtxvpwIZ3bTegs/nNP\u002BmIxCU="}]]]></EndpointProperties>
       <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=3600, must-revalidate"},{"Name":"Content-Length","Value":"26971"},{"Name":"Content-Type","Value":"image/png"},{"Name":"ETag","Value":"\u0022n03jc8gGk2jgFXmDWtQ\u002BtxvpwIZ3bTegs/nNP\u002BmIxCU=\u0022"},{"Name":"Last-Modified","Value":"Thu, 24 Apr 2025 07:39:57 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/BilliardsManagement/js/booking/timer.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\booking\timer.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-SwtDaTbmA7giW2A6bRLyH9ocO4L\u002BvwaQNNSYmcJAf2Q="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"4561"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022SwtDaTbmA7giW2A6bRLyH9ocO4L\u002BvwaQNNSYmcJAf2Q=\u0022"},{"Name":"Last-Modified","Value":"Wed, 14 May 2025 18:31:01 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/BilliardsManagement/js/booking/timer.v7v1bjej8x.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\booking\timer.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"v7v1bjej8x"},{"Name":"integrity","Value":"sha256-SwtDaTbmA7giW2A6bRLyH9ocO4L\u002BvwaQNNSYmcJAf2Q="},{"Name":"label","Value":"_content/BilliardsManagement/js/booking/timer.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"4561"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022SwtDaTbmA7giW2A6bRLyH9ocO4L\u002BvwaQNNSYmcJAf2Q=\u0022"},{"Name":"Last-Modified","Value":"Wed, 14 May 2025 18:31:01 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/BilliardsManagement/js/serving.1c35zlng4i.js">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\serving.js'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
