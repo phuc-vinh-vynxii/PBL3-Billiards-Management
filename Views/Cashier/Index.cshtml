@@ -1,1 +1,1527 @@
-<h2>Welcome Cashier</h2>
+@model BilliardsManagement.Models.ViewModels.CashierDashboardViewModel
+@{
+    ViewData["Title"] = "Thu ngân - Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Doanh thu hôm nay</h5>
+                    <h2 class="card-text">@Model.TodayRevenue.ToString("N0") ₫</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Tổng số bàn</h5>
+                    <p class="mb-0">Hoạt động tốt: @Model.TotalAvailableTables</p>
+                    <p class="mb-0">Hỏng: @Model.TotalActiveTables</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Giao dịch hôm nay</h5>
+                    <h2 class="card-text">@Model.TodayTransactions</h2>
+                </div>
+            </div>
+        </div>
+        @if (Model.CanManageOrders)
+        {
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Đơn hàng chờ xử lý</h5>
+                        <h2 class="card-text">@Model.PendingOrders</h2>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Bàn đang sử dụng</h5>
+                        <h2 class="card-text">@Model.TotalActiveTables</h2>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Management Functions -->
+    <div class="row g-4">
+        <!-- Core Cashier Function -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-credit-card fs-1 text-success mb-3"></i>
+                    <h5 class="card-title">Thanh toán</h5>
+                    <p class="card-text">Xử lý thanh toán hóa đơn khách hàng</p>
+                    <button class="btn btn-primary" onclick="showPendingInvoicesModal()">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permission-based Features -->
+        @if (Model.CanManageTables)
+        {
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-tools fs-1 text-success mb-3"></i>
+                        <h5 class="card-title">Quản lý tình trạng bàn</h5>
+                        <p class="card-text">Kiểm tra và cập nhật tình trạng các bàn</p>
+                        <a href="@Url.Action("TableManagement", "Manager")" class="btn btn-success">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanViewRevenue)
+        {
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-cash-stack fs-1 text-danger mb-3"></i>
+                        <h5 class="card-title">Quản lý doanh thu</h5>
+                        <p class="card-text">Xem báo cáo và thống kê doanh thu</p>
+                        <a href="@Url.Action("Revenue", "Manager")" class="btn btn-danger">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanViewProducts)
+        {
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-box-seam fs-1 text-warning mb-3"></i>
+                        <h5 class="card-title">Quản lý thiết bị và dụng cụ</h5>
+                        <p class="card-text">Quản lý thiết bị và dụng cụ</p>
+                        <a href="@Url.Action("Equipment", "Manager")" class="btn btn-warning">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-cup-hot fs-1 text-success mb-3"></i>
+                        <h5 class="card-title">Quản lý đồ ăn thức uống</h5>
+                        <p class="card-text">Quản lý đồ ăn và thức uống</p>
+                        <a href="@Url.Action("FoodAndBeverage", "Manager")" class="btn btn-success">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanViewBookings)
+        {
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-table fs-1 text-primary mb-3"></i>
+                        <h5 class="card-title">Đặt bàn</h5>
+                        <p class="card-text">Quản lý đặt bàn và gọi thức uống</p>
+                        <a href="@Url.Action("Booking", "Manager")" class="btn btn-primary">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanManageOrders)
+        {
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-list-ul fs-1 text-info mb-3"></i>
+                        <h5 class="card-title">Quản lý đơn hàng</h5>
+                        <p class="card-text">Xử lý đơn hàng chờ và theo dõi</p>
+                        <button class="btn btn-info" onclick="showOrdersModal()">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanTransferTables)
+        {
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="bi bi-arrow-left-right fs-1 text-purple mb-3" style="color: #6f42c1;"></i>
+                        <h5 class="card-title">Chuyển bàn</h5>
+                        <p class="card-text">Chuyển khách từ bàn này sang bàn khác</p>
+                        <a asp-controller="Cashier" asp-action="TableTransfer" class="btn btn-outline-purple" style="color: #6f42c1; border-color: #6f42c1;">
+                            <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Quick Info Cards -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-history fs-1 text-dark mb-3"></i>
+                    <h5 class="card-title">Giao dịch gần đây</h5>
+                    <p class="card-text">Xem lịch sử giao dịch trong ngày</p>
+                    <button class="btn btn-dark" onclick="showTransactionModal()">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Truy cập
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Invoices Modal -->
+<div class="modal fade" id="pendingInvoicesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Danh sách hóa đơn chưa thanh toán</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Các bàn đang sử dụng</h6>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshPendingInvoices()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Làm mới
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="pendingInvoicesContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Details Modal -->
+<div class="modal fade" id="invoiceDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chi tiết hóa đơn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="invoiceDetailsContent">
+                <!-- Invoice details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-success" id="processPaymentBtn" onclick="processSelectedPayment()">
+                    <i class="bi bi-credit-card me-1"></i>Thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Confirmation Modal -->
+<div class="modal fade" id="paymentConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xác nhận thanh toán</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="paymentConfirmContent">
+                <!-- Payment confirmation details -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-success" onclick="confirmPayment()">
+                    <i class="bi bi-check-circle me-1"></i>Xác nhận thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Status Modal -->
+<div class="modal fade" id="tableStatusModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Trạng thái bàn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    @foreach (var table in Model.TableStatus)
+                    {
+                        <div class="col-md-6 mb-3">
+                            <div class="card @(table.Status == "AVAILABLE" ? "border-success" : "border-danger")" onclick="showTableInfo(@table.TableId)">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="card-title">Bàn @table.TableNumber</h6>
+                                            <span class="badge @(table.Status == "AVAILABLE" ? "bg-success" : "bg-danger")">
+                                                @(table.Status == "AVAILABLE" ? "Trống" : "Đang sử dụng")
+                                            </span>
+                                        </div>
+                                        <div class="text-end">
+                                            @if (table.Status == "OCCUPIED")
+                                            {
+                                                <strong class="text-danger">@table.CurrentBill.ToString("N0") ₫</strong>
+                                                <br>
+                                                <small class="text-muted">@table.StartTime?.ToString("HH:mm")</small>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Modal -->
+<div class="modal fade" id="transactionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-clock-history me-2"></i>Giao dịch gần đây
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filter Controls -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Khoảng thời gian</label>
+                                <select class="form-select" id="transactionDaysFilter">
+                                    <option value="1">Hôm nay</option>
+                                    <option value="3">3 ngày qua</option>
+                                    <option value="7" selected>7 ngày qua</option>
+                                    <option value="30">30 ngày qua</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Số lượng hiển thị</label>
+                                <select class="form-select" id="transactionLimitFilter">
+                                    <option value="10">10 giao dịch</option>
+                                    <option value="20" selected>20 giao dịch</option>
+                                    <option value="50">50 giao dịch</option>
+                                    <option value="100">100 giao dịch</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary" onclick="loadTransactions()">
+                                    <i class="bi bi-search me-1"></i>Lọc
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="exportTransactions()">
+                                    <i class="bi bi-download me-1"></i>Xuất
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-3" id="transactionStats">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Tổng giao dịch</h6>
+                                <h4 id="totalTransactions">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Tổng doanh thu</h6>
+                                <h4 id="totalRevenue">0₫</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Giá trị TB</h6>
+                                <h4 id="avgTransaction">0₫</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">Khoảng thời gian</h6>
+                                <h6 id="timeRange">-</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Methods Breakdown -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Phương thức thanh toán</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="paymentMethodStats">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Chi tiết giao dịch</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="transaction-table-header">
+                                    <tr>
+                                        <th>Mã HĐ</th>
+                                        <th>Bàn</th>
+                                        <th>Thời gian chơi</th>
+                                        <th>Tiền bàn</th>
+                                        <th>Tiền dịch vụ</th>
+                                        <th>Tổng tiền</th>
+                                        <th>PT thanh toán</th>
+                                        <th>Thu ngân</th>
+                                        <th>Thời gian TT</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTableBody">
+                                    <tr>
+                                        <td colspan="9" class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Đang tải...</span>
+                                            </div>
+                                            <p class="mt-2">Đang tải dữ liệu...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Đóng
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loadTransactions()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Làm mới
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table Info Modal -->
+<div class="modal fade" id="tableInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thông tin bàn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="tableInfoContent">
+                <!-- Table info will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Orders Modal -->
+@if (Model.CanManageOrders)
+{
+    <div class="modal fade" id="ordersModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Đơn hàng chờ xử lý</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (Model.PendingOrdersList.Any())
+                    {
+                        @foreach (var order in Model.PendingOrdersList)
+                        {
+                            <div class="alert alert-warning d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>@order.ProductName</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        Bàn @order.TableNumber | SL: @order.Quantity
+                                        <br>
+                                        @order.OrderTime.ToString("HH:mm dd/MM")
+                                    </small>
+                                </div>
+                                <button class="btn btn-success btn-sm" onclick="completeOrder(@order.OrderId)">
+                                    <i class="bi bi-check"></i> Hoàn thành
+                                </button>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-check-circle display-4 mb-2"></i>
+                            <p>Không có đơn hàng chờ</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- QR Code Payment Modal -->
+<div class="modal fade" id="qrPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-qr-code me-2"></i>Thanh toán bằng QR Code
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <h6 class="text-primary">Bàn <span id="qrTableName"></span></h6>
+                    <div class="badge bg-secondary mb-3">HĐ #<span id="qrInvoiceId"></span></div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">Chi tiết thanh toán</h6>
+                        
+                        <!-- Tiền bàn -->
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <i class="bi bi-clock me-2 text-primary"></i>
+                                <span>Thời gian chơi:</span>
+                            </div>
+                            <div class="col-6 text-end">
+                                <span id="qrPaymentPlayTime" class="fw-bold">0 giờ 0 phút</span>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <i class="bi bi-table me-2 text-success"></i>
+                                <span>Tiền bàn:</span>
+                            </div>
+                            <div class="col-6 text-end">
+                                <span id="qrPaymentTableCost" class="fw-bold">0₫</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Dịch vụ -->
+                        <div class="mb-2">
+                            <div class="row">
+                                <div class="col-6">
+                                    <i class="bi bi-cup-straw me-2 text-warning"></i>
+                                    <span>Dịch vụ:</span>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <span id="qrPaymentServiceCost" class="fw-bold">0₫</span>
+                                </div>
+                            </div>
+                            <div id="qrServiceDetails" class="mt-2 ps-4">
+                                <!-- Chi tiết dịch vụ sẽ được load động -->
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        <div class="row">
+                            <div class="col-6">
+                                <strong class="text-primary">Tổng cộng:</strong>
+                            </div>
+                            <div class="col-6 text-end">
+                                <strong class="display-6 text-success fw-bold" id="qrPaymentAmount">0₫</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Hướng dẫn:</strong><br>
+                    1. Khách hàng quét mã QR bên dưới<br>
+                    2. Thực hiện chuyển khoản<br>
+                    3. Nhân viên kiểm tra đã nhận tiền<br>
+                    4. Bấm "Hoàn tất thanh toán"
+                        </div>
+
+                <!-- QR Code Display -->
+                <div class="qr-code-container mb-4">
+                    <div class="border rounded p-3 bg-white d-inline-block">
+                        <img src="~/images/qr-code.png" alt="QR Code" class="img-fluid" style="max-width: 250px; max-height: 250px;">
+                        </div>
+                    <p class="text-muted mt-2 small">Quét mã QR để chuyển khoản</p>
+                </div>
+
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Lưu ý:</strong> Chỉ bấm "Hoàn tất" sau khi đã xác nhận nhận được tiền!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Hủy
+                </button>
+                <button type="button" class="btn btn-success" onclick="completeQRPayment()" id="qrCompleteBtn">
+                    <i class="bi bi-check-circle me-2"></i>Hoàn tất thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thanh toán hóa đơn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="paymentContent">
+                    <div class="text-center mb-4">
+                        <h4 class="text-primary">Bàn <span id="paymentTableName"></span></h4>
+                        <div class="badge bg-secondary mb-3">HĐ #<span id="paymentInvoiceId"></span></div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title mb-3">Chi tiết thanh toán</h6>
+                            
+                            <!-- Tiền bàn -->
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <i class="bi bi-clock me-2 text-primary"></i>
+                                    <span>Thời gian chơi:</span>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <span id="paymentPlayTime" class="fw-bold">0 giờ 0 phút</span>
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <i class="bi bi-table me-2 text-success"></i>
+                                    <span>Tiền bàn:</span>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <span id="paymentTableCost" class="fw-bold">0₫</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Dịch vụ -->
+                            <div class="mb-2">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <i class="bi bi-cup-straw me-2 text-warning"></i>
+                                        <span>Dịch vụ:</span>
+                                    </div>
+                                    <div class="col-6 text-end">
+                                        <span id="paymentServiceCost" class="fw-bold">0₫</span>
+                                    </div>
+                                </div>
+                                <div id="serviceDetails" class="mt-2 ps-4">
+                                    <!-- Chi tiết dịch vụ sẽ được load động -->
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong class="text-primary">Tổng cộng:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong class="display-6 text-success fw-bold" id="paymentTotal">0₫</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chọn phương thức thanh toán:</label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="paymentMethod" id="cash" value="CASH" checked>
+                                <label class="btn btn-outline-success w-100" for="cash">
+                                    <i class="bi bi-cash-stack d-block fs-4 mb-1"></i>
+                                    <small>Tiền mặt</small>
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="paymentMethod" id="card" value="CARD">
+                                <label class="btn btn-outline-primary w-100" for="card">
+                                    <i class="bi bi-credit-card d-block fs-4 mb-1"></i>
+                                    <small>Thẻ ATM</small>
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="paymentMethod" id="qr" value="QR_PAY">
+                                <label class="btn btn-outline-info w-100" for="qr">
+                                    <i class="bi bi-qr-code d-block fs-4 mb-1"></i>
+                                    <small>QR Pay</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Lưu ý:</strong> Việc thanh toán sẽ kết thúc phiên chơi và giải phóng bàn.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-success" onclick="processPayment()">
+                    <i class="bi bi-check-circle me-2"></i>Xác nhận thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS for beautiful Transaction Table -->
+<style>
+    .transaction-table-header {
+        color: white;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        border-bottom: 2px solid #007bff;
+    }
+    
+    .transaction-table-header th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 12px 8px;
+        border: none;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    /* Màu nền cho từng cột header */
+    .transaction-table-header th:nth-child(1) { /* Mã HĐ */
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .transaction-table-header th:nth-child(2) { /* Bàn */
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+    
+    .transaction-table-header th:nth-child(3) { /* Thời gian chơi */
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    }
+    
+    .transaction-table-header th:nth-child(4) { /* Tiền bàn */
+        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    }
+    
+    .transaction-table-header th:nth-child(5) { /* Tiền dịch vụ */
+        background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%);
+    }
+    
+    .transaction-table-header th:nth-child(6) { /* Tổng tiền */
+        background: linear-gradient(135deg, #20c997 0%, #1aa179 100%);
+    }
+    
+    .transaction-table-header th:nth-child(7) { /* PT thanh toán */
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    
+    .transaction-table-header th:nth-child(8) { /* Thu ngân */
+        background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
+    }
+    
+    .transaction-table-header th:nth-child(9) { /* Thời gian TT */
+        background: linear-gradient(135deg, #e83e8c 0%, #d91a72 100%);
+    }
+    
+    .transaction-row {
+        transition: all 0.2s ease;
+    }
+    
+    .transaction-row:hover {
+        background-color: rgba(227, 242, 253, 0.8) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+    
+    .transaction-row:hover td {
+        background-color: rgba(227, 242, 253, 0.8) !important;
+    }
+    
+    .transaction-row td {
+        padding: 10px 8px;
+        vertical-align: middle;
+        border-bottom: 1px solid #e0e0e0;
+        text-align: center;
+    }
+    
+    /* Màu nền nhẹ cho từng cột body */
+    .transaction-row td:nth-child(1) { /* Mã HĐ */
+        background-color: rgba(102, 126, 234, 0.05);
+    }
+    
+    .transaction-row td:nth-child(2) { /* Bàn */
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    .transaction-row td:nth-child(3) { /* Thời gian chơi */
+        background-color: rgba(23, 162, 184, 0.05);
+    }
+    
+    .transaction-row td:nth-child(4) { /* Tiền bàn */
+        background-color: rgba(40, 167, 69, 0.05);
+    }
+    
+    .transaction-row td:nth-child(5) { /* Tiền dịch vụ */
+        background-color: rgba(253, 126, 20, 0.05);
+    }
+    
+    .transaction-row td:nth-child(6) { /* Tổng tiền */
+        background-color: rgba(32, 201, 151, 0.05);
+    }
+    
+    .transaction-row td:nth-child(7) { /* PT thanh toán */
+        background-color: rgba(220, 53, 69, 0.05);
+    }
+    
+    .transaction-row td:nth-child(8) { /* Thu ngân */
+        background-color: rgba(108, 117, 125, 0.05);
+    }
+    
+    .transaction-row td:nth-child(9) { /* Thời gian TT */
+        background-color: rgba(232, 62, 140, 0.05);
+    }
+    
+    /* Invoice ID styling */
+    .invoice-id {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    /* Table name styling */
+    .table-name {
+        color: #007bff;
+        font-weight: 600;
+    }
+    
+    /* Time styling */
+    .play-time {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    /* Money styling */
+    .money-table {
+        background: linear-gradient(45deg, #17a2b8, #007bff);
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    .money-service {
+        background: linear-gradient(45deg, #fd7e14, #e83e8c);
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    .money-total {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    /* Payment method badges */
+    .payment-cash {
+        background: linear-gradient(45deg, #28a745, #20c997) !important;
+        border: none;
+        color: white;
+        font-weight: 500;
+    }
+    
+    .payment-card {
+        background: linear-gradient(45deg, #6f42c1, #e83e8c) !important;
+        border: none;
+        color: white;
+        font-weight: 500;
+    }
+    
+    .payment-qr {
+        background: linear-gradient(45deg, #17a2b8, #007bff) !important;
+        border: none;
+        color: white;
+        font-weight: 500;
+    }
+    
+    /* Cashier name styling */
+    .cashier-name {
+        color: #495057;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
+    /* Payment time styling */
+    .payment-time {
+        background: linear-gradient(45deg, #e83e8c, #fd7e14);
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    /* Payment method selection styling */
+    .payment-method-radio {
+        display: none;
+    }
+
+    .payment-method-label {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #dee2e6;
+    }
+
+    .payment-method-label:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-color: #007bff;
+    }
+
+    .payment-method-radio:checked + .payment-method-label {
+        border-color: #007bff !important;
+        background-color: rgba(13, 110, 253, 0.1) !important;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    .payment-method-radio:checked + .payment-method-label .payment-icon {
+        color: #007bff !important;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let selectedInvoiceId = null;
+        let selectedInvoiceData = null;
+
+        function showPendingInvoicesModal() {
+            $('#pendingInvoicesModal').modal('show');
+            loadPendingInvoices();
+        }
+
+        function loadPendingInvoices() {
+            $('#pendingInvoicesContent').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                </div>
+            `);
+
+            $.get('@Url.Action("GetPendingInvoices")', function(response) {
+                if (response.success) {
+                    displayPendingInvoices(response.data);
+                } else {
+                    $('#pendingInvoicesContent').html(`
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>${response.message}
+                        </div>
+                    `);
+                }
+            }).fail(function() {
+                $('#pendingInvoicesContent').html(`
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Có lỗi xảy ra khi tải dữ liệu!
+                    </div>
+                `);
+            });
+        }
+
+        function displayPendingInvoices(invoices) {
+            if (!invoices || invoices.length === 0) {
+                $('#pendingInvoicesContent').html(`
+                    <div class="text-center py-5">
+                        <i class="bi bi-receipt text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">Không có hóa đơn chưa thanh toán</h5>
+                        <p class="text-muted">Tất cả các bàn hiện tại đều trống hoặc đã thanh toán.</p>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = '<div class="row g-3">';
+            invoices.forEach(invoice => {
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title mb-1">Bàn ${invoice.tableName}</h6>
+                                        <small class="text-muted">Bắt đầu: ${invoice.startTime}</small><br>
+                                        <small class="text-muted">Thời gian: ${invoice.currentDuration}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold text-primary">${formatCurrency(invoice.grandTotal)}</div>
+                                        <small class="text-muted">Tiền bàn: ${formatCurrency(invoice.currentTableTotal)}</small><br>
+                                        <small class="text-muted">Dịch vụ: ${formatCurrency(invoice.serviceTotal)}</small>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-primary btn-sm me-2" onclick="viewInvoiceDetails(${invoice.invoiceId})">
+                                        <i class="bi bi-eye me-1"></i>Chi tiết
+                                    </button>
+                                    <button class="btn btn-success btn-sm" onclick="showPaymentModal(${invoice.invoiceId}, '${invoice.tableName}', ${invoice.grandTotal})">
+                                        <i class="bi bi-credit-card me-1"></i>Thanh toán
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            $('#pendingInvoicesContent').html(html);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', { 
+                style: 'currency', 
+                currency: 'VND',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function showPaymentModal(invoiceId, tableName, totalAmount) {
+            selectedInvoiceId = invoiceId;
+            $('#paymentInvoiceId').text(invoiceId);
+            $('#paymentTableName').text(tableName);
+            $('#paymentTotal').text(formatCurrency(totalAmount));
+            
+            // Reset payment method to cash
+            $('#cash').prop('checked', true);
+            
+            // Load invoice details for breakdown
+            loadInvoiceBreakdown(invoiceId);
+            
+            $('#paymentModal').modal('show');
+        }
+
+        function loadInvoiceBreakdown(invoiceId) {
+            // Set loading state
+            $('#paymentPlayTime').text('Đang tải...');
+            $('#paymentTableCost').text('0₫');
+            $('#paymentServiceCost').text('0₫');
+            $('#serviceDetails').html('<div class="text-muted"><small>Đang tải...</small></div>');
+            
+            $.get('@Url.Action("GetInvoiceDetails")', { invoiceId: invoiceId }, function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    
+                    // Update time and table cost
+                    $('#paymentPlayTime').text(data.playTime || '0 giờ 0 phút');
+                    $('#paymentTableCost').text(formatCurrency(data.tableTotal || 0));
+                    $('#paymentServiceCost').text(formatCurrency(data.serviceTotal || 0));
+                    
+                    // Update QR modal values too
+                    $('#qrPaymentPlayTime').text(data.playTime || '0 giờ 0 phút');
+                    $('#qrPaymentTableCost').text(formatCurrency(data.tableTotal || 0));
+                    $('#qrPaymentServiceCost').text(formatCurrency(data.serviceTotal || 0));
+                    
+                    // Build service details HTML
+                    let serviceHtml = '';
+                    if (data.orderDetails && data.orderDetails.length > 0) {
+                        data.orderDetails.forEach(item => {
+                            serviceHtml += `
+                                <div class="row mb-1">
+                                    <div class="col-6">
+                                        <small class="text-muted">${item.productName} x ${item.quantity}</small>
+                                    </div>
+                                    <div class="col-6 text-end">
+                                        <small class="text-muted">${formatCurrency(item.total)}</small>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        serviceHtml = '<div class="text-muted"><small>Không có dịch vụ</small></div>';
+                    }
+                    
+                    $('#serviceDetails').html(serviceHtml);
+                    $('#qrServiceDetails').html(serviceHtml);
+                    
+                } else {
+                    $('#paymentPlayTime').text('Lỗi tải dữ liệu');
+                    $('#paymentTableCost').text('0₫');
+                    $('#paymentServiceCost').text('0₫');
+                    $('#serviceDetails').html('<div class="text-danger"><small>Lỗi tải dữ liệu</small></div>');
+                }
+            }).fail(function() {
+                $('#paymentPlayTime').text('Lỗi tải dữ liệu');
+                $('#paymentTableCost').text('0₫');
+                $('#paymentServiceCost').text('0₫');
+                $('#serviceDetails').html('<div class="text-danger"><small>Lỗi tải dữ liệu</small></div>');
+            });
+        }
+
+        function processPayment() {
+            if (!selectedInvoiceId) {
+                alert('Không có hóa đơn được chọn!');
+                return;
+            }
+
+            const paymentMethod = $('input[name="paymentMethod"]:checked').val();
+            
+            // If QR Pay is selected, show QR modal instead
+            if (paymentMethod === 'QR_PAY') {
+                showQRPaymentModal();
+                return;
+            }
+            
+            // Process Cash/Card payment directly
+            processDirectPayment(paymentMethod);
+        }
+
+        function showQRPaymentModal() {
+            if (!selectedInvoiceId) {
+                alert('Lỗi: Không xác định được hóa đơn. Vui lòng thử lại.');
+                return;
+            }
+            
+            // Copy data from payment modal to QR modal
+            $('#qrTableName').text($('#paymentTableName').text());
+            $('#qrInvoiceId').text($('#paymentInvoiceId').text());
+            $('#qrPaymentAmount').text($('#paymentTotal').text());
+            
+            // Hide payment modal and show QR modal
+            $('#paymentModal').modal('hide');
+            setTimeout(() => {
+                $('#qrPaymentModal').modal('show');
+            }, 300);
+        }
+
+        function completeQRPayment() {
+            if (!selectedInvoiceId) {
+                alert('Không có hóa đơn được chọn!');
+                return;
+            }
+            
+            // Check if SweetAlert2 is available
+            if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Xác nhận thanh toán QR',
+                text: 'Bạn đã xác nhận nhận được tiền chuyển khoản?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đã nhận tiền, hoàn tất!',
+                cancelButtonText: 'Chưa nhận tiền'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    processDirectPayment('QR_PAY');
+                }
+                });
+            } else {
+                if (confirm('Bạn đã xác nhận nhận được tiền chuyển khoản?')) {
+                    processDirectPayment('QR_PAY');
+                }
+            }
+        }
+
+        function processDirectPayment(paymentMethod) {
+            // Show loading state
+            const originalBtn = paymentMethod === 'QR_PAY' 
+                ? $('button[onclick="completeQRPayment()"]')
+                : $('button[onclick="processPayment()"]');
+            
+            const originalText = originalBtn.html();
+            originalBtn.html('<i class="spinner-border spinner-border-sm me-2"></i>Đang xử lý...').prop('disabled', true);
+
+            $.post('@Url.Action("ProcessPaymentWithCalculation")', {
+                invoiceId: selectedInvoiceId,
+                paymentMethod: paymentMethod
+            }, function(response) {
+                if (response.success) {
+                    // Hide all modals
+                    $('#paymentModal').modal('hide');
+                    $('#qrPaymentModal').modal('hide');
+                    
+                    // Show success message
+                    const paymentMethodName = getPaymentMethodName(paymentMethod);
+                    
+                    if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: `Thanh toán ${paymentMethodName} thành công!`,
+                        html: `
+                            <div class="text-start">
+                                    <p><strong>Hóa đơn:</strong> #${response.data.invoiceId}</p>
+                                    <p><strong>Bàn:</strong> ${response.data.tableName}</p>
+                                    <p><strong>Tổng tiền:</strong> ${formatCurrency(response.data.totalAmount)}</p>
+                                    <p><strong>Thời gian:</strong> ${response.data.paymentTime}</p>
+                            </div>
+                        `,
+                        timer: 4000,
+                        showConfirmButton: false
+                    });
+                    } else {
+                        alert(`Thanh toán thành công!\nHóa đơn: #${response.data.invoiceId}\nTổng tiền: ${formatCurrency(response.data.totalAmount)}`);
+                    }
+                    
+                    // Refresh the pending invoices list
+                    loadPendingInvoices();
+                    
+                    // Reset selected invoice
+                    selectedInvoiceId = null;
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi thanh toán',
+                        text: response.message
+                    });
+                    } else {
+                        alert('Lỗi thanh toán: ' + response.message);
+                    }
+                }
+            }).fail(function() {
+                if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi hệ thống',
+                    text: 'Có lỗi xảy ra khi xử lý thanh toán!'
+                });
+                } else {
+                    alert('Có lỗi xảy ra khi xử lý thanh toán!');
+                }
+            }).always(function() {
+                // Restore button state
+                originalBtn.html(originalText).prop('disabled', false);
+            });
+        }
+
+        function getPaymentMethodName(method) {
+            switch(method) {
+                case 'CASH': return 'Tiền mặt';
+                case 'CARD': return 'Thẻ ATM';
+                case 'QR_PAY': return 'QR Pay';
+                default: return method;
+            }
+        }
+
+        function viewInvoiceDetails(invoiceId) {
+            // Load and show invoice details in a modal
+            $.get('@Url.Action("GetInvoiceDetails")', { invoiceId: invoiceId }, function(response) {
+                if (response.success) {
+                    showInvoiceDetailsModal(response.data);
+                } else {
+                    alert('Lỗi: ' + response.message);
+                }
+            });
+        }
+
+        function showInvoiceDetailsModal(data) {
+            let orderHtml = '';
+            if (data.orderDetails && data.orderDetails.length > 0) {
+                orderHtml = `
+                    <h6 class="mt-3">Chi tiết dịch vụ:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th>SL</th>
+                                    <th>Đơn giá</th>
+                                    <th>Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.orderDetails.forEach(item => {
+                    orderHtml += `
+                        <tr>
+                            <td>${item.productName}</td>
+                            <td>${item.quantity}</td>
+                            <td>${formatCurrency(item.unitPrice)}</td>
+                            <td>${formatCurrency(item.total)}</td>
+                        </tr>
+                    `;
+                });
+                
+                orderHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                orderHtml = '<p class="text-muted mt-3">Chưa có dịch vụ nào được gọi.</p>';
+            }
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: `Chi tiết hóa đơn #${data.invoiceId}`,
+                    html: `
+                        <div class="text-start">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Thông tin bàn:</h6>
+                                        <p><strong>Bàn:</strong> ${data.tableName}</p>
+                                        <p><strong>Loại bàn:</strong> ${data.tableType}</p>
+                                        <p><strong>Bắt đầu:</strong> ${data.startTime}</p>
+                                        <p><strong>Thời gian:</strong> ${data.currentDuration}</p>
+                                        <p><strong>Giá/giờ:</strong> ${formatCurrency(data.pricePerHour)}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Tổng kết:</h6>
+                                    <p><strong>Tiền bàn:</strong> ${formatCurrency(data.tableTotal)}</p>
+                                    <p><strong>Tiền dịch vụ:</strong> ${formatCurrency(data.serviceTotal)}</p>
+                                    <p><strong>Tổng cộng:</strong> ${formatCurrency(data.grandTotal)}</p>
+                                    </div>
+                                </div>
+                                ${orderHtml}
+                            </div>
+                    `,
+                    showConfirmButton: true,
+                    confirmButtonText: 'Đóng',
+                    width: '800px'
+                            });
+                        } else {
+                alert(`Chi tiết hóa đơn #${data.invoiceId}\nBàn: ${data.tableName}\nTổng: ${formatCurrency(data.grandTotal)}`);
+            }
+        }
+
+        function refreshPendingInvoices() {
+            loadPendingInvoices();
+        }
+
+        // Transaction Modal Functions
+        function showTransactionModal() {
+            $('#transactionModal').modal('show');
+            loadTransactions(); // Load transactions when modal opens
+        }
+
+        function loadTransactions() {
+            const days = $('#transactionDaysFilter').val() || 7;
+            const limit = $('#transactionLimitFilter').val() || 20;
+            
+            // Show loading state
+            $('#transactionTableBody').html(`
+                <tr>
+                    <td colspan="9" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                        <div class="mt-2">Đang tải giao dịch...</div>
+                    </td>
+                </tr>
+            `);
+            
+            // Reset statistics
+            $('#totalTransactions').text('0');
+            $('#totalRevenue').text('0₫');
+            $('#avgTransaction').text('0₫');
+            $('#timeRange').text('');
+            
+            $.get('@Url.Action("GetRecentTransactions")', { 
+                days: days, 
+                limit: limit 
+            }, function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    
+                    // Update statistics
+                    $('#totalTransactions').text(data.statistics.totalTransactions.toLocaleString());
+                    $('#totalRevenue').text(formatCurrency(data.statistics.totalAmount));
+                    $('#avgTransaction').text(formatCurrency(data.statistics.avgTransactionValue));
+                    $('#timeRange').text(`${data.statistics.fromDate} - ${data.statistics.toDate}`);
+                    
+                    // Update payment method stats
+                    updatePaymentMethodStats(data.statistics.paymentMethodStats);
+                    
+                    // Update transactions table
+                    updateTransactionsTable(data.transactions);
+                } else {
+                    $('#transactionTableBody').html(`
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                ${response.message || 'Có lỗi xảy ra khi tải dữ liệu'}
+                            </td>
+                        </tr>
+                    `);
+                }
+            }).fail(function() {
+                $('#transactionTableBody').html(`
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-danger">
+                            <i class="bi bi-wifi-off me-2"></i>
+                            Lỗi kết nối. Vui lòng thử lại!
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        function updatePaymentMethodStats(paymentMethodStats) {
+            let html = '';
+            paymentMethodStats.forEach(stat => {
+                const methodName = getPaymentMethodName(stat.method);
+                let cardClass = 'bg-info'; // default
+                
+                if (stat.method === 'CASH') cardClass = 'bg-success';
+                else if (stat.method === 'CARD') cardClass = 'bg-info';
+                else if (stat.method === 'QR_PAY') cardClass = 'bg-info';
+                
+                html += `
+                    <div class="col-md-4 mb-2">
+                        <div class="card ${cardClass} text-white">
+                            <div class="card-body text-center py-3">
+                                <h6 class="card-title mb-1">${methodName}</h6>
+                                <h5 class="mb-1">${stat.count} giao dịch</h5>
+                                <h6 class="mb-0">${formatCurrency(stat.amount)}</h6>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            $('#paymentMethodStats').html(html);
+        }
+
+        function updateTransactionsTable(transactions) {
+            let html = '';
+            
+            if (transactions.length === 0) {
+                html = `
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox me-2"></i>
+                            Không có giao dịch nào trong khoảng thời gian này
+                        </td>
+                    </tr>
+                `;
+            } else {
+                transactions.forEach((transaction, index) => {
+                    // Get payment method class
+                    let paymentClass = 'bg-secondary';
+                    if (transaction.paymentMethod === 'CASH') paymentClass = 'payment-cash';
+                    else if (transaction.paymentMethod === 'CARD') paymentClass = 'payment-card';
+                    else if (transaction.paymentMethod === 'QR_PAY') paymentClass = 'payment-qr';
+                    
+                    html += `
+                        <tr class="transaction-row">
+                            <td>
+                                <span class="invoice-id">#${transaction.invoiceId}</span>
+                            </td>
+                            <td>
+                                <i class="bi bi-table me-2 text-primary"></i>
+                                <span class="table-name">${transaction.tableName}</span>
+                            </td>
+                            <td>
+                                <i class="bi bi-clock me-1 text-muted"></i>
+                                <span class="play-time">${transaction.sessionDuration}</span>
+                            </td>
+                            <td>
+                                <span class="money-table">${formatCurrency(transaction.tableTotal)}</span>
+                            </td>
+                            <td>
+                                <span class="money-service">${formatCurrency(transaction.serviceTotal)}</span>
+                            </td>
+                            <td>
+                                <span class="money-total">${formatCurrency(transaction.amount)}</span>
+                            </td>
+                            <td>
+                                <span class="badge ${paymentClass}">${getPaymentMethodName(transaction.paymentMethod)}</span>
+                            </td>
+                            <td>
+                                <i class="bi bi-person me-1 text-muted"></i>
+                                <span class="cashier-name">${transaction.cashierName}</span>
+                            </td>
+                            <td>
+                                <span class="payment-time">${transaction.paymentTime}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            $('#transactionTableBody').html(html);
+        }
+
+        function exportTransactions() {
+            const days = $('#transactionDaysFilter').val() || 7;
+            const limit = $('#transactionLimitFilter').val() || 20;
+            
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Xuất dữ liệu',
+                    text: 'Chức năng xuất dữ liệu sẽ được triển khai sau.',
+                    icon: 'info'
+                });
+            } else {
+                alert('Chức năng xuất dữ liệu sẽ được triển khai sau.');
+            }
+        }
+
+        // Document ready
+        $(document).ready(function() {
+            console.log('Cashier dashboard ready!');
+        });
+    </script>
+}

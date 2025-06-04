@@ -94,6 +94,40 @@ namespace BilliardsManagement.Migrations
                     b.ToTable("Employee");
                 });
 
+            modelBuilder.Entity("BilliardsManagement.Models.Entities.EmployeePermission", b =>
+                {
+                    b.Property<int>("EmployeePermissionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeePermissionId"));
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("GrantedBy")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EmployeePermissionId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("GrantedBy");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("EmployeePermissions");
+                });
+
             modelBuilder.Entity("BilliardsManagement.Models.Entities.Invoice", b =>
                 {
                     b.Property<int>("InvoiceId")
@@ -157,9 +191,7 @@ namespace BilliardsManagement.Migrations
 
                     b.HasKey("OrderId");
 
-                    b.HasIndex("EmployeeId")
-                        .IsUnique()
-                        .HasFilter("[EmployeeId] IS NOT NULL");
+                    b.HasIndex("EmployeeId");
 
                     b.HasIndex("SessionId");
 
@@ -193,6 +225,41 @@ namespace BilliardsManagement.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("OrderDetail");
+                });
+
+            modelBuilder.Entity("BilliardsManagement.Models.Entities.Permission", b =>
+                {
+                    b.Property<int>("PermissionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PermissionId"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PermissionName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("PermissionId");
+
+                    b.ToTable("Permissions");
                 });
 
             modelBuilder.Entity("BilliardsManagement.Models.Entities.Product", b =>
@@ -329,6 +396,32 @@ namespace BilliardsManagement.Migrations
                     b.ToTable("Tables");
                 });
 
+            modelBuilder.Entity("BilliardsManagement.Models.Entities.EmployeePermission", b =>
+                {
+                    b.HasOne("BilliardsManagement.Models.Entities.Employee", "Employee")
+                        .WithMany("EmployeePermissions")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BilliardsManagement.Models.Entities.Employee", "GrantedByEmployee")
+                        .WithMany("GrantedPermissions")
+                        .HasForeignKey("GrantedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BilliardsManagement.Models.Entities.Permission", "Permission")
+                        .WithMany("EmployeePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("GrantedByEmployee");
+
+                    b.Navigation("Permission");
+                });
+
             modelBuilder.Entity("BilliardsManagement.Models.Entities.Invoice", b =>
                 {
                     b.HasOne("BilliardsManagement.Models.Entities.Employee", "Cashier")
@@ -349,8 +442,8 @@ namespace BilliardsManagement.Migrations
             modelBuilder.Entity("BilliardsManagement.Models.Entities.Order", b =>
                 {
                     b.HasOne("BilliardsManagement.Models.Entities.Employee", "OrderNavigation")
-                        .WithOne("Order")
-                        .HasForeignKey("BilliardsManagement.Models.Entities.Order", "EmployeeId")
+                        .WithMany("Orders")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BilliardsManagement.Models.Entities.Session", "Session")
@@ -421,9 +514,13 @@ namespace BilliardsManagement.Migrations
 
             modelBuilder.Entity("BilliardsManagement.Models.Entities.Employee", b =>
                 {
+                    b.Navigation("EmployeePermissions");
+
+                    b.Navigation("GrantedPermissions");
+
                     b.Navigation("Invoices");
 
-                    b.Navigation("Order");
+                    b.Navigation("Orders");
 
                     b.Navigation("Sessions");
                 });
@@ -431,6 +528,11 @@ namespace BilliardsManagement.Migrations
             modelBuilder.Entity("BilliardsManagement.Models.Entities.Order", b =>
                 {
                     b.Navigation("OrderDetails");
+                });
+
+            modelBuilder.Entity("BilliardsManagement.Models.Entities.Permission", b =>
+                {
+                    b.Navigation("EmployeePermissions");
                 });
 
             modelBuilder.Entity("BilliardsManagement.Models.Entities.Product", b =>

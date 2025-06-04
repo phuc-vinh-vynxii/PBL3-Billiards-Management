@@ -1,0 +1,396 @@
+@model BilliardsManagement.Models.ViewModels.BookingViewModel
+@{
+    ViewData["Title"] = "Đặt bàn - Nhân viên phục vụ";
+    Layout = "_Layout";
+    var statusColors = new Dictionary<string, string>
+    {
+        { "AVAILABLE", "bg-success" },
+        { "OCCUPIED", "bg-primary" },
+        { "MAINTENANCE", "bg-warning" },
+        { "BROKEN", "bg-danger" },
+        { "BOOKED", "bg-info" }
+    };
+}
+
+<!-- Thêm tham chiếu tới file JavaScript cho bộ đếm thời gian -->
+<script src="~/js/booking/timer.js"></script>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <a asp-controller="Serving" asp-action="Index" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left me-2"></i>Quay lại
+            </a>
+            <h2 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Đặt bàn</h2>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Table Status Grid -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Trạng thái bàn</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        @foreach (var table in Model.Tables)
+                        {
+                            var isInUse = table.Sessions.Any(s => s.EndTime == null);
+                            var isBooked = table.Reservations.Any(r => r.Status == "CONFIRMED" && r.EndTime > DateTime.Now);
+                            var statusColor = isInUse ? "bg-primary" : 
+                                              isBooked ? "bg-info" : 
+                                              statusColors.ContainsKey(table.Status) ? statusColors[table.Status] : "bg-secondary";
+                            var statusText = isInUse ? "Đang sử dụng" : 
+                                            isBooked ? "Đã đặt" : 
+                                            table.Status switch
+                                            {
+                                                "AVAILABLE" => "Trống",
+                                                "MAINTENANCE" => "Bảo trì",
+                                                "BROKEN" => "Hỏng",
+                                                _ => "Không xác định"
+                                            };
+                            
+                            <div class="col-md-3">
+                                <div class="card @statusColor text-white">
+                                    <div class="card-body p-3 text-center">
+                                        <h5 class="card-title mb-0">@table.TableName</h5>
+                                        <div class="mt-2">
+                                            <span class="badge bg-white text-dark">@statusText</span>
+                                            <span class="badge bg-warning text-dark border border-dark">@table.TableType</span>
+                                        </div>
+                                        <div class="mt-3">
+                                            @if (isInUse)
+                                            {
+                                                var activeSession = table.Sessions.FirstOrDefault(s => s.EndTime == null);
+                                                var sessionStartTime = activeSession?.StartTime;
+                                                var sessionId = activeSession?.SessionId;
+                                                <div class="mb-2 timer-container">
+                                                    <div class="d-flex justify-content-center align-items-center mb-2">
+                                                        <i class="bi bi-stopwatch me-1"></i>
+                                                        <span class="table-timer" 
+                                                              data-start-time="@(sessionStartTime?.ToString("yyyy-MM-ddTHH:mm:ss") ?? DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"))"
+                                                              data-price-per-hour="@table.PricePerHour"
+                                                              data-table-id="@table.TableId">
+                                                            00:00:00
+                                                        </span>
+                                                    </div>
+                                                    <div class="mb-2 text-center">
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="bi bi-cash-coin me-1"></i>
+                                                            <span class="table-cost" data-table-id="@table.TableId">0 VND</span>
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <a href="@Url.Action("Table", new { id = table.TableId })" 
+                                                           class="btn btn-sm btn-primary border border-dark border-2 me-1">
+                                                            <i class="bi bi-cart-plus"></i> Thêm dịch vụ
+                                                        </a>
+                                                        <button class="btn btn-sm btn-light me-2" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#bookTableModal"
+                                                                data-table-id="@table.TableId" 
+                                                                data-table-name="@table.TableName">
+                                                            <i class="bi bi-calendar-plus"></i> Đặt bàn
+                                                        </button>
+                                                        <form asp-action="EndSession" method="post" class="d-inline">
+                                                            <input type="hidden" name="sessionId" value="@sessionId" />
+                                                            <button type="submit" class="btn btn-sm btn-danger border border-dark border-2" 
+                                                                    onclick="return confirm('Bạn có chắc muốn kết thúc phiên sử dụng này?')">
+                                                                <i class="bi bi-stop-fill"></i> Kết thúc
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else if (isBooked)
+                                            {
+                                                var reservation = table.Reservations.FirstOrDefault();
+                                                <div>
+                                                    <button class="btn btn-sm btn-light me-2" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#bookTableModal"
+                                                            data-table-id="@table.TableId" 
+                                                            data-table-name="@table.TableName">
+                                                        <i class="bi bi-calendar-plus"></i> Đặt bàn
+                                                    </button>
+                                                    @if (reservation != null)
+                                                    {
+                                                        <form asp-action="StartSession" method="post" class="d-inline">
+                                                            <input type="hidden" name="tableId" value="@table.TableId" />
+                                                            <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+                                                            <input type="hidden" name="customerId" value="@reservation.CustomerId" />
+                                                            <button type="submit" class="btn btn-sm btn-success border border-dark border-2">
+                                                                <i class="bi bi-play-fill"></i> Bắt đầu
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (table.Status == "AVAILABLE")
+                                            {
+                                                <div>
+                                                    <button class="btn btn-sm btn-light me-2" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#bookTableModal"
+                                                            data-table-id="@table.TableId" 
+                                                            data-table-name="@table.TableName">
+                                                        <i class="bi bi-calendar-plus"></i> Đặt bàn
+                                                    </button>
+                                                    <form asp-action="StartSession" method="post" class="d-inline">
+                                                        <input type="hidden" name="tableId" value="@table.TableId" />
+                                                        <button type="submit" class="btn btn-sm btn-success border border-dark border-2">
+                                                            <i class="bi bi-play-fill"></i> Bắt đầu
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-dark">Bàn không khả dụng</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservations List -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Lịch đặt sắp tới</h5>
+                </div>
+                <div class="card-body p-0" id="reservationsContainer">
+                    @if (Model.Reservations?.Any() == true)
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var reservation in Model.Reservations.Take(10))
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">@reservation.Table?.TableName</h6>
+                                            <p class="mb-1">@reservation.Customer?.FullName</p>
+                                            <small class="text-muted">
+                                                @(reservation.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "N/A") - 
+                                                @(reservation.EndTime?.ToString("HH:mm") ?? "N/A")
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-primary">@reservation.Status</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center p-4 text-muted">
+                            <i class="bi bi-calendar-x fs-3 mb-2 d-block"></i>
+                            <p>Không có đặt bàn nào</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Book Table Modal -->
+<div class="modal fade" id="bookTableModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Đặt bàn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreateReservation" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="tableId" name="tableId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bàn đã chọn:</label>
+                        <input type="text" id="tableName" class="form-control" readonly />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customerId" class="form-label fw-bold">Khách hàng *</label>
+                        <div class="input-group">
+                            <select class="form-select" id="customerId" name="customerId" required>
+                                <option value="">-- Chọn khách hàng --</option>
+                                @if (Model.Customers != null)
+                                {
+                                    @foreach (var customer in Model.Customers)
+                                    {
+                                        <option value="@customer.CustomerId">@customer.FullName - @customer.Phone</option>
+                                    }
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bookingDate" class="form-label fw-bold">Ngày đặt bàn *</label>
+                        <input type="date" class="form-control" id="bookingDate" name="bookingDate" 
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="startTimeStr" class="form-label fw-bold">Giờ bắt đầu *</label>
+                                <input type="time" class="form-control" id="startTimeStr" name="startTimeStr" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="endTimeStr" class="form-label fw-bold">Giờ kết thúc *</label>
+                                <input type="time" class="form-control" id="endTimeStr" name="endTimeStr" required />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Ghi chú</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Ghi chú thêm (không bắt buộc)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Đặt bàn
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Thêm khách hàng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="newCustomerName" class="form-label fw-bold">Tên khách hàng *</label>
+                    <input type="text" class="form-control" id="newCustomerName" required />
+                </div>
+                <div class="mb-3">
+                    <label for="newCustomerPhone" class="form-label fw-bold">Số điện thoại *</label>
+                    <input type="tel" class="form-control" id="newCustomerPhone" required />
+                </div>
+                <div class="mb-3">
+                    <label for="newCustomerEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="newCustomerEmail" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-success" onclick="createCustomer()">
+                    <i class="bi bi-check-circle me-2"></i>Thêm khách hàng
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize booking modal
+        document.addEventListener('DOMContentLoaded', function() {
+            var bookTableModal = document.getElementById('bookTableModal');
+            bookTableModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var tableId = button.getAttribute('data-table-id');
+                var tableName = button.getAttribute('data-table-name');
+                
+                document.getElementById('tableId').value = tableId;
+                document.getElementById('tableName').value = tableName;
+                
+                // Set default date to today
+                var today = new Date().toISOString().split('T')[0];
+                document.getElementById('bookingDate').value = today;
+            });
+        });
+
+        // Create new customer
+        function createCustomer() {
+            const name = document.getElementById('newCustomerName').value;
+            const phone = document.getElementById('newCustomerPhone').value;
+            const email = document.getElementById('newCustomerEmail').value;
+            
+            if (!name || !phone) {
+                alert('Vui lòng nhập tên và số điện thoại khách hàng');
+                return;
+            }
+            
+            const customerData = {
+                FullName: name,
+                Phone: phone,
+                Email: email || null
+            };
+            
+            fetch('@Url.Action("CreateCustomer", "Serving")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(customerData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.customerId) {
+                    // Add new customer to select list
+                    const select = document.getElementById('customerId');
+                    const option = new Option(`${data.fullName} - ${data.phone}`, data.customerId);
+                    select.add(option);
+                    select.value = data.customerId;
+                    
+                    // Close modal and clear form
+                    bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
+                    document.getElementById('newCustomerName').value = '';
+                    document.getElementById('newCustomerPhone').value = '';
+                    document.getElementById('newCustomerEmail').value = '';
+                    
+                    alert('Thêm khách hàng thành công!');
+                } else {
+                    alert('Lỗi: ' + (data.error || 'Không thể thêm khách hàng'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi thêm khách hàng');
+            });
+        }
+    </script>
+} 

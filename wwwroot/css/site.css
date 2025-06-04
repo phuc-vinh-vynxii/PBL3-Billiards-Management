@@ -555,3 +555,273 @@ main {
     padding: 1rem;
   }
 }
+
+/* Profile page styles */
+.profile-container {
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 120px);
+  padding: 2rem 0;
+}
+
+.profile-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.profile-header {
+  background: linear-gradient(135deg, #0f6222 0%, #1a7a2e 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+  padding: 1.5rem;
+}
+
+.profile-header h5 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.form-floating {
+  margin-bottom: 1rem;
+}
+
+.form-floating > .form-control:disabled {
+  background-color: #f8f9fa;
+  opacity: 0.8;
+}
+
+.form-floating > .form-control:not(:disabled) {
+  background-color: white;
+  border-color: #0f6222;
+}
+
+.form-floating > .form-control:focus {
+  border-color: #0f6222;
+  box-shadow: 0 0 0 0.2rem rgba(15, 98, 34, 0.25);
+}
+
+.form-floating > label {
+  color: #6c757d;
+}
+
+.edit-mode .form-control {
+  border-color: #0f6222 !important;
+  background-color: #fff !important;
+}
+
+.security-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.security-stats {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.security-stats .stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.security-stats .stat-item:last-child {
+  border-bottom: none;
+}
+
+.password-input-group {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.password-toggle:hover {
+  color: #0f6222;
+}
+
+.btn-edit {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-edit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  color: white;
+}
+
+.btn-change-password {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+  border: none;
+  color: #212529;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-change-password:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+  color: #212529;
+}
+
+.role-badge {
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.role-badge.manager {
+  background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
+  color: white;
+}
+
+.role-badge.cashier {
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+  color: white;
+}
+
+.role-badge.serving {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+  color: #212529;
+}
+
+.profile-info-row {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.profile-info-row:last-child {
+  border-bottom: none;
+}
+
+.profile-info-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.profile-info-value {
+  color: #6c757d;
+}
+
+.form-actions {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0 0 12px 12px;
+  margin: 1rem -1.5rem -1.5rem;
+}
+
+/* Password Modal Styles */
+.modal-content {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #0f6222 0%, #1a7a2e 100%);
+  color: white;
+  border-bottom: none;
+}
+
+.modal-header .btn-close {
+  filter: invert(1);
+}
+
+.password-strength {
+  margin-top: 0.5rem;
+}
+
+.password-strength-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: #e9ecef;
+  overflow: hidden;
+}
+
+.password-strength-fill {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.strength-weak {
+  background: #dc3545;
+  width: 25%;
+}
+
+.strength-medium {
+  background: #ffc107;
+  width: 50%;
+}
+
+.strength-good {
+  background: #17a2b8;
+  width: 75%;
+}
+
+.strength-strong {
+  background: #28a745;
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 1rem 0;
+  }
+
+  .profile-header {
+    padding: 1rem;
+  }
+
+  .profile-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+  }
+
+  .form-actions {
+    margin: 1rem -1rem -1rem;
+  }
+}

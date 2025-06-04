@@ -1,6 +1,20 @@
+@using BilliardsManagement.Services
+@inject IPermissionService PermissionService
 @{
     var userRole = Context.Session.GetString("Role")?.ToUpper() ?? "";
     var fullName = Context.Session.GetString("FullName");
+    var employeeId = Context.Session.GetInt32("EmployeeId") ?? 0;
+    
+    // Get employee permissions if not manager
+    List<string> userPermissions = new List<string>();
+    if (employeeId > 0 && userRole != "MANAGER")
+    {
+        userPermissions = await PermissionService.GetEmployeePermissionsAsync(employeeId);
+    }
+    
+    // Pre-calculate permission categories for display
+    var permissionCategories = userPermissions.Select(p => p.Split('_')[0]).Distinct().Take(3).ToList();
+    
     var roleDisplay = userRole switch
     {
         "MANAGER" => "Quản lý",
@@ -14,7 +28,7 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                <i class="bi bi-dribbble me-2"></i>Billiards Management
+                <i class="bi bi-circle-fill me-2"></i>Billiards Management
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                 <i class="bi bi-list"></i>
@@ -25,14 +39,17 @@
                     @if (userRole == "MANAGER")
                     {
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-gear me-1"></i>Quản lý
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="Index">Thống kê</a></li>
                                 <li><a class="dropdown-item" asp-controller="Manager" asp-action="TableManagement">Quản lý bàn</a></li>
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="Revenue">Quản lý doanh thu</a></li>
                                 <li><a class="dropdown-item" asp-controller="Manager" asp-action="Equipment">Quản lý thiết bị và dụng cụ</a></li>
                                 <li><a class="dropdown-item" asp-controller="Manager" asp-action="FoodAndBeverage">Quản lý đồ ăn thức uống</a></li>
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="Staff">Quản lý nhân sự</a></li>
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="Permissions">Quản lý phân quyền</a></li>
+                                <li><a class="dropdown-item" asp-controller="Manager" asp-action="Booking">Đặt bàn</a></li>
                             </ul>
                         </li>
                     }
@@ -43,6 +60,47 @@
                                 <i class="bi bi-cash-stack me-1"></i>Thu ngân
                             </a>
                         </li>
+                        
+                        @* Show additional options based on permissions *@
+                        @if (userPermissions.Contains("TABLE_VIEW") || userPermissions.Contains("TABLE_MANAGE"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Manager" asp-action="TableManagement">
+                                    <i class="bi bi-table me-1"></i>Quản lý bàn
+                                </a>
+                            </li>
+                        }
+                        
+                        @if (userPermissions.Contains("BOOKING_VIEW"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Manager" asp-action="Booking">
+                                    <i class="bi bi-calendar-check me-1"></i>Đặt bàn
+                                </a>
+                            </li>
+                        }
+                        
+                        @if (userPermissions.Contains("PRODUCT_VIEW"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-box me-1"></i>Sản phẩm
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-controller="Manager" asp-action="FoodAndBeverage">Đồ ăn thức uống</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Manager" asp-action="Equipment">Thiết bị dụng cụ</a></li>
+                                </ul>
+                            </li>
+                        }
+                        
+                        @if (userPermissions.Contains("REVENUE_VIEW"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Manager" asp-action="Revenue">
+                                    <i class="bi bi-chart-line me-1"></i>Doanh thu
+                                </a>
+                            </li>
+                        }
                     }
                     else if (userRole == "SERVING")
                     {
@@ -51,17 +109,65 @@
                                 <i class="bi bi-table me-1"></i>Phục vụ bàn
                             </a>
                         </li>
+                        
+                        @* Show additional options based on permissions *@
+                        @if (userPermissions.Contains("TABLE_VIEW") || userPermissions.Contains("TABLE_MANAGE"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Manager" asp-action="TableManagement">
+                                    <i class="bi bi-table me-1"></i>Quản lý bàn
+                                </a>
+                            </li>
+                        }
+                        
+                        @if (userPermissions.Contains("BOOKING_VIEW"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Manager" asp-action="Booking">
+                                    <i class="bi bi-calendar-check me-1"></i>Đặt bàn
+                                </a>
+                            </li>
+                        }
+                        
+                        @if (userPermissions.Contains("PRODUCT_VIEW"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-box me-1"></i>Sản phẩm
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-controller="Manager" asp-action="FoodAndBeverage">Đồ ăn thức uống</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Manager" asp-action="Equipment">Thiết bị dụng cụ</a></li>
+                                </ul>
+                            </li>
+                        }
                     }
                 </ul>
 
                 @if (!string.IsNullOrEmpty(fullName))
                 {
                     <div class="dropdown">
-                        <button class="user-profile dropdown-toggle" type="button">
+                        <button class="user-profile dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle me-1"></i>@fullName (@roleDisplay)
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
+                            <li><h6 class="dropdown-header">Tài khoản</h6></li>
+                            <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
+                            
+                            @if (userRole != "MANAGER" && userPermissions.Any())
+                            {
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Quyền của tôi</h6></li>
+                                @foreach (var category in permissionCategories)
+                                {
+                                    <li><span class="dropdown-item-text"><small><i class="bi bi-check-circle text-success me-1"></i>@category</small></span></li>
+                                }
+                                @if (userPermissions.Count > 3)
+                                {
+                                    <li><span class="dropdown-item-text"><small class="text-muted">... và @(userPermissions.Count - 3) quyền khác</small></span></li>
+                                }
+                            }
+                            
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form asp-controller="Account" asp-action="Logout" method="post">

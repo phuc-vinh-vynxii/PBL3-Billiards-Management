@@ -1,0 +1,707 @@
+@model BilliardsManagement.Models.ViewModels.RevenueViewModel
+@{
+    ViewData["Title"] = "Quản lý doanh thu";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <!-- Debug info - chỉ hiển thị trong development -->
+    @* 
+    @if (ViewContext.HttpContext.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>()?.IsDevelopment() == true)
+    {
+        <div class="alert alert-info">
+            <h6>Debug Info:</h6>
+            <p><strong>Khoảng thời gian:</strong> @Model.FromDate.ToString("dd/MM/yyyy") - @Model.ToDate.ToString("dd/MM/yyyy")</p>
+            <p><strong>Số ngày dữ liệu:</strong> @Model.DailyRevenueData.Count</p>
+            @if (Model.DailyRevenueData.Any())
+            {
+                <p><strong>Dữ liệu theo ngày:</strong></p>
+                <ul style="max-height: 200px; overflow-y: auto;">
+                @foreach (var day in Model.DailyRevenueData.Take(10))
+                {
+                    <li>@day.Date.ToString("dd/MM/yyyy"): Tổng=@day.TotalRevenue.ToString("N0"), Bàn=@day.TableRevenue.ToString("N0"), SP=@day.ProductRevenue.ToString("N0"), HĐ=@day.InvoiceCount</li>
+                }
+                @if (Model.DailyRevenueData.Count > 10)
+                {
+                    <li>... và @(Model.DailyRevenueData.Count - 10) ngày khác</li>
+                }
+                </ul>
+            }
+            <div class="mt-2">
+                <button class="btn btn-warning btn-sm" onclick="debugInvoices()">
+                    <i class="fas fa-bug me-1"></i> Debug Invoice Data
+                </button>
+            </div>
+            <div id="debugResults" class="mt-2" style="display: none;">
+                <pre id="debugOutput" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;"></pre>
+            </div>
+        </div>
+    }
+    *@
+
+    <!-- Header với icon đẹp -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <a asp-controller="Manager" asp-action="BackToDashboard" class="btn btn-outline-secondary me-3">
+                            <i class="fas fa-arrow-left me-2"></i>Quay lại
+                        </a>
+                        <div class="icon-circle bg-primary text-white me-3">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-0 text-primary">Quản lý doanh thu</h2>
+                            <p class="text-muted mb-0">Xem báo cáo và thống kê doanh thu</p>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" onclick="seedData()" style="display: @(Model.TotalInvoices == 0 ? "block" : "none")">
+                            <i class="fas fa-database me-1"></i> Tạo dữ liệu mẫu
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="exportReport('csv')">
+                            <i class="fas fa-file-csv me-1"></i> Xuất CSV
+                        </button>
+                        <button class="btn btn-primary" onclick="refreshData()">
+                            <i class="fas fa-sync-alt me-1"></i> Làm mới
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bộ lọc thời gian -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form id="filterForm" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="fromDate" class="form-label">Từ ngày</label>
+                            <input type="date" class="form-control" id="fromDate" name="fromDate" 
+                                   value="@Model.FromDate.ToString("yyyy-MM-dd")">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="toDate" class="form-label">Đến ngày</label>
+                            <input type="date" class="form-control" id="toDate" name="toDate" 
+                                   value="@Model.ToDate.ToString("yyyy-MM-dd")">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-1"></i> Áp dụng bộ lọc
+                            </button>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('today')">Hôm nay</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('week')">Tuần này</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('month')">Tháng này</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="setDateRange('year')">Năm này</button>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="setCustomDateRange('2025-05-01', '2025-05-31')">Tháng 5/2025</button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="setCustomDateRange('2025-04-01', '2025-04-30')">Tháng 4/2025</button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="setCustomDateRange('2025-03-01', '2025-03-31')">Tháng 3/2025</button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="setCustomDateRange('2025-01-01', '2025-12-31')">Cả năm 2025</button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="setCustomDateRange('2024-01-01', '2025-12-31')">Tất cả dữ liệu</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thống kê tổng quan -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="text-white-75 small">Tổng doanh thu</div>
+                            <div class="h4 mb-0" id="totalRevenue">@Model.TotalRevenue.ToString("N0") VND</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-dollar-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="text-white-75 small">Doanh thu bàn</div>
+                            <div class="h4 mb-0" id="tableRevenue">@Model.TableRevenue.ToString("N0") VND</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-table fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="text-white-75 small">Doanh thu sản phẩm</div>
+                            <div class="h4 mb-0" id="productRevenue">@Model.ProductRevenue.ToString("N0") VND</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-shopping-cart fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm bg-gradient-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="text-white-75 small">Số hóa đơn</div>
+                            <div class="h4 mb-0" id="totalInvoices">@Model.TotalInvoices</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-receipt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thống kê theo thời gian -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Hôm nay</div>
+                            <div class="h5 mb-0" id="todayRevenue">@Model.TodayRevenue.ToString("N0") VND</div>
+                        </div>
+                        <div class="text-primary">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Tuần này</div>
+                            <div class="h5 mb-0" id="weekRevenue">@Model.WeekRevenue.ToString("N0") VND</div>
+                        </div>
+                        <div class="text-success">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Tháng này</div>
+                            <div class="h5 mb-0" id="monthRevenue">@Model.MonthRevenue.ToString("N0") VND</div>
+                        </div>
+                        <div class="text-info">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Năm này</div>
+                            <div class="h5 mb-0" id="yearRevenue">@Model.YearRevenue.ToString("N0") VND</div>
+                        </div>
+                        <div class="text-warning">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biểu đồ và thống kê chi tiết -->
+    <div class="row">
+        <!-- Biểu đồ doanh thu theo ngày -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        Biểu đồ doanh thu theo ngày
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="dailyRevenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top sản phẩm bán chạy -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy text-warning me-2"></i>
+                        Top sản phẩm
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="topProductsList">
+                        @foreach (var product in Model.TopProductsRevenue.Take(5))
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <div class="fw-bold">@product.ProductName</div>
+                                    <small class="text-muted">@product.QuantitySold đã bán</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-success">@product.Revenue.ToString("N0")</div>
+                                    <small class="text-muted">@product.Percentage%</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Biểu đồ doanh thu theo tháng -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar text-info me-2"></i>
+                        Doanh thu theo tháng
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyRevenueChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doanh thu theo bàn -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table text-success me-2"></i>
+                        Doanh thu theo bàn
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tableRevenueTable">
+                            <thead>
+                                <tr>
+                                    <th>Bàn</th>
+                                    <th>Loại</th>
+                                    <th>Phiên chơi</th>
+                                    <th>Tổng giờ</th>
+                                    <th>Doanh thu</th>
+                                    <th>%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var table in Model.TableRevenueData.Take(10))
+                                {
+                                    <tr>
+                                        <td>@table.TableName</td>
+                                        <td>
+                                            <span class="badge bg-@(table.TableType == "VIP" ? "warning" : "primary")">
+                                                @table.TableType
+                                            </span>
+                                        </td>
+                                        <td>@table.TotalSessions</td>
+                                        <td>@table.TotalHours.ToString("F1")h</td>
+                                        <td class="fw-bold text-success">@table.Revenue.ToString("N0")</td>
+                                        <td>@table.Percentage%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hóa đơn gần đây -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt text-primary me-2"></i>
+                        Hóa đơn gần đây
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="recentInvoicesTable">
+                            <thead>
+                                <tr>
+                                    <th>Mã HĐ</th>
+                                    <th>Thời gian</th>
+                                    <th>Bàn</th>
+                                    <th>Tổng tiền</th>
+                                    <th>PT thanh toán</th>
+                                    <th>Thu ngân</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var invoice in Model.RecentInvoices.Take(10))
+                                {
+                                    <tr>
+                                        <td>#@invoice.InvoiceId</td>
+                                        <td>@invoice.PaymentTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>@invoice.TableName</td>
+                                        <td class="fw-bold text-success">@invoice.TotalAmount.ToString("N0") VND</td>
+                                        <td>
+                                            <span class="badge bg-@(invoice.PaymentMethod == "CASH" ? "success" : "info")">
+                                                @invoice.PaymentMethod
+                                            </span>
+                                        </td>
+                                        <td>@invoice.CashierName</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .icon-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .bg-gradient-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+        }
+        
+        .bg-gradient-success {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+        }
+        
+        .bg-gradient-info {
+            background: linear-gradient(45deg, #17a2b8, #117a8b);
+        }
+        
+        .bg-gradient-warning {
+            background: linear-gradient(45deg, #ffc107, #d39e00);
+        }
+        
+        .card {
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,123,255,.1);
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let dailyChart, monthlyChart;
+        
+        // Khởi tạo biểu đồ
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+        });
+        
+        function initializeCharts() {
+            // Biểu đồ doanh thu theo ngày
+            const dailyCtx = document.getElementById('dailyRevenueChart').getContext('2d');
+            
+            // Lấy dữ liệu và tính toán min/max để set scale phù hợp
+            const tableData = @Html.Raw(Json.Serialize(Model.DailyRevenueData.Select(d => d.TableRevenue)));
+            const productData = @Html.Raw(Json.Serialize(Model.DailyRevenueData.Select(d => d.ProductRevenue)));
+            const allValues = [...tableData, ...productData].filter(v => v > 0);
+            const maxValue = Math.max(...allValues);
+            const minValue = Math.min(...allValues);
+            
+            // Debug log để kiểm tra dữ liệu
+            console.log('Chart Data Debug:');
+            console.log('Labels:', @Html.Raw(Json.Serialize(Model.DailyRevenueData.Select(d => d.Date.ToString("dd/MM")))));
+            console.log('Table Revenue:', tableData);
+            console.log('Product Revenue:', productData);
+            console.log('Min Value:', minValue, 'Max Value:', maxValue);
+            
+            dailyChart = new Chart(dailyCtx, {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.DailyRevenueData.Select(d => d.Date.ToString("dd/MM")))),
+                    datasets: [{
+                        label: 'Doanh thu bàn',
+                        data: tableData,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }, {
+                        label: 'Doanh thu sản phẩm',
+                        data: productData,
+                        borderColor: '#17a2b8',
+                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: maxValue > 1000 && minValue > 100, // Chỉ beginAtZero khi có giá trị lớn
+                            min: maxValue <= 1000 ? 0 : undefined, // Đặt min=0 cho giá trị nhỏ
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('vi-VN').format(value) + ' VND';
+                                },
+                                stepSize: maxValue <= 1000 ? 100 : undefined // Bước nhảy nhỏ cho giá trị nhỏ
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' VND';
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+            
+            // Biểu đồ doanh thu theo tháng
+            const monthlyCtx = document.getElementById('monthlyRevenueChart').getContext('2d');
+            monthlyChart = new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.MonthlyRevenueData.Select(m => m.MonthName))),
+                    datasets: [{
+                        label: 'Tổng doanh thu',
+                        data: @Html.Raw(Json.Serialize(Model.MonthlyRevenueData.Select(m => m.TotalRevenue))),
+                        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+                        borderColor: '#007bff',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('vi-VN').format(value) + ' VND';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' VND';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Xử lý form filter
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            
+            if (fromDate && toDate) {
+                window.location.href = `/Manager/Revenue?fromDate=${fromDate}&toDate=${toDate}`;
+            }
+        });
+        
+        // Set date range shortcuts
+        function setDateRange(period) {
+            const today = new Date();
+            let fromDate, toDate;
+            
+            switch(period) {
+                case 'today':
+                    fromDate = toDate = today.toISOString().split('T')[0];
+                    break;
+                case 'week':
+                    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+                    fromDate = startOfWeek.toISOString().split('T')[0];
+                    toDate = new Date().toISOString().split('T')[0];
+                    break;
+                case 'month':
+                    fromDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                    toDate = new Date().toISOString().split('T')[0];
+                    break;
+                case 'year':
+                    fromDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+                    toDate = new Date().toISOString().split('T')[0];
+                    break;
+            }
+            
+            document.getElementById('fromDate').value = fromDate;
+            document.getElementById('toDate').value = toDate;
+            document.getElementById('filterForm').dispatchEvent(new Event('submit'));
+        }
+        
+        // Set custom date range
+        function setCustomDateRange(fromDate, toDate) {
+            document.getElementById('fromDate').value = fromDate;
+            document.getElementById('toDate').value = toDate;
+            document.getElementById('filterForm').dispatchEvent(new Event('submit'));
+        }
+        
+        // Refresh data
+        function refreshData() {
+            window.location.reload();
+        }
+        
+        // Export report
+        function exportReport(format) {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            
+            const url = `/Manager/ExportRevenueReport?format=${format}&fromDate=${fromDate}&toDate=${toDate}`;
+            window.open(url, '_blank');
+        }
+        
+        // Seed data
+        function seedData() {
+            if (confirm('Bạn có chắc chắn muốn tạo dữ liệu mẫu? Điều này sẽ thêm các phiên chơi và hóa đơn giả lập.')) {
+                showLoading();
+                
+                fetch('/Manager/SeedRevenueData', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                })
+                .then(response => {
+                    hideLoading();
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Có lỗi xảy ra khi tạo dữ liệu mẫu');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi tạo dữ liệu mẫu');
+                });
+            }
+        }
+        
+        // Show loading
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('d-none');
+        }
+        
+        // Hide loading
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('d-none');
+        }
+        
+        // Debug invoices
+        /*
+        function debugInvoices() {
+            fetch('/Manager/DebugInvoiceData')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('debugResults').style.display = 'block';
+                    document.getElementById('debugOutput').textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('debugResults').style.display = 'block';
+                    document.getElementById('debugOutput').textContent = 'Error: ' + error.message;
+                });
+        }
+        */
+    </script>
+} 

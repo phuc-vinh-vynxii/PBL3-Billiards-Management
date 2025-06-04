@@ -18,7 +18,7 @@
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center">
-            <a asp-controller="Manager" asp-action="Booking" class="btn btn-outline-secondary me-3">
+            <a asp-controller="Manager" asp-action="BackToDashboard" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-2"></i>Quay lại
             </a>
             <h2 class="mb-0"><i class="bi bi-cart-plus me-2"></i>Thêm dịch vụ</h2>
@@ -103,14 +103,6 @@
                     <div class="row mb-3">
                         <div class="col-md-6 fw-bold">Tổng cộng:</div>
                         <div class="col-md-6 text-end fw-bold fs-5" id="grandTotal">@grandTotal.ToString("N0") đ</div>
-                    </div>
-                    
-                    <div class="d-grid gap-2">
-                        <a href="@Url.Action("EndSession", new { sessionId = Model.Session.SessionId })" 
-                           class="btn btn-danger"
-                           onclick="return confirm('Bạn có chắc chắn muốn kết thúc phiên sử dụng bàn này?')">
-                            <i class="bi bi-receipt-cutoff me-2"></i>Kết thúc và xuất hóa đơn
-                        </a>
                     </div>
                 </div>
             </div>

@@ -1,0 +1,450 @@
+@model BilliardsManagement.Models.ViewModels.StaffManagementViewModel
+@{
+    ViewData["Title"] = "Quản lý nhân sự";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <a asp-controller="Manager" asp-action="BackToDashboard" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left me-2"></i>Quay lại
+            </a>
+            <h2 class="mb-0"><i class="bi bi-people me-2"></i>Quản lý nhân sự</h2>
+        </div>
+        <button class="btn btn-success" onclick="openAddEmployeeModal()">
+            <i class="bi bi-person-plus me-2"></i>Thêm nhân viên
+        </button>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Tổng nhân viên</h5>
+                    <h2 class="card-text">@Model.Statistics.TotalEmployees</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Quản lý</h5>
+                    <h2 class="card-text">@Model.Statistics.ManagerCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Thu ngân</h5>
+                    <h2 class="card-text">@Model.Statistics.CashierCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Phục vụ</h5>
+                    <h2 class="card-text">@Model.Statistics.ServingCount</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee List -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Họ tên</th>
+                            <th>Chức vụ</th>
+                            <th>Số điện thoại</th>
+                            <th>Email</th>
+                            <th>Tên đăng nhập</th>
+                            <th>Ngày tạo</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var employee in Model.Employees)
+                        {
+                            var positionClass = employee.Position switch
+                            {
+                                "MANAGER" => "badge bg-info",
+                                "CASHIER" => "badge bg-success",
+                                "SERVING" => "badge bg-warning",
+                                _ => "badge bg-secondary"
+                            };
+
+                            var positionText = employee.Position switch
+                            {
+                                "MANAGER" => "Quản lý",
+                                "CASHIER" => "Thu ngân",
+                                "SERVING" => "Phục vụ",
+                                _ => employee.Position
+                            };
+
+                            <tr>
+                                <td>@employee.EmployeeId</td>
+                                <td>@employee.FullName</td>
+                                <td>
+                                    <span class="@positionClass">@positionText</span>
+                                </td>
+                                <td>@(employee.Phone ?? "N/A")</td>
+                                <td>@(employee.Email ?? "N/A")</td>
+                                <td>@employee.Username</td>
+                                <td>@(employee.CreatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                <td>
+                                    @if (employee.Position != "MANAGER")
+                                    {
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-primary" onclick="openEditEmployeeModal(@employee.EmployeeId)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" onclick="openResetPasswordModal(@employee.EmployeeId, '@employee.FullName')">
+                                                <i class="bi bi-key"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteEmployee(@employee.EmployeeId, '@employee.FullName')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">
+                                            <i class="bi bi-shield-check me-1"></i>Không thể thao tác
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmployeeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Thêm nhân viên mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="CreateEmployee" method="post">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="FullName" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Chức vụ <span class="text-danger">*</span></label>
+                                <select class="form-select" name="Position" required>
+                                    <option value="">Chọn chức vụ</option>
+                                    <option value="CASHIER">Thu ngân</option>
+                                    <option value="SERVING">Phục vụ</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="tel" class="form-control" name="Phone" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="Email" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="Username" required />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" name="Password" id="createPassword" required minlength="6" />
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('createPassword')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" name="ConfirmPassword" id="createConfirmPassword" required minlength="6" />
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('createConfirmPassword')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-success">Thêm nhân viên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade" id="editEmployeeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Chỉnh sửa thông tin nhân viên</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="UpdateEmployee" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="EmployeeId" id="editEmployeeId" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="FullName" id="editFullName" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Chức vụ <span class="text-danger">*</span></label>
+                                <select class="form-select" name="Position" id="editPosition" required>
+                                    <option value="CASHIER">Thu ngân</option>
+                                    <option value="SERVING">Phục vụ</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="tel" class="form-control" name="Phone" id="editPhone" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="Email" id="editEmail" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="Username" id="editUsername" required />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Cập nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-key me-2"></i>Đặt lại mật khẩu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="resetEmployeeId" />
+                <p>Đặt lại mật khẩu cho nhân viên: <strong id="resetEmployeeName"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label">Mật khẩu mới <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                    <input type="password" class="form-control" id="newPassword" required minlength="6" />
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('newPassword')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                    <input type="password" class="form-control" id="confirmNewPassword" required minlength="6" />
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmNewPassword')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-warning" onclick="resetPassword()">Đặt lại mật khẩu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openAddEmployeeModal() {
+            new bootstrap.Modal(document.getElementById('addEmployeeModal')).show();
+        }
+
+        function openEditEmployeeModal(id) {
+            fetch(`/Manager/GetEmployee/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('editEmployeeId').value = data.employeeId;
+                    document.getElementById('editFullName').value = data.fullName;
+                    document.getElementById('editPosition').value = data.position;
+                    document.getElementById('editPhone').value = data.phone || '';
+                    document.getElementById('editEmail').value = data.email || '';
+                    document.getElementById('editUsername').value = data.username;
+                    
+                    new bootstrap.Modal(document.getElementById('editEmployeeModal')).show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi tải thông tin nhân viên');
+                });
+        }
+
+        function openResetPasswordModal(id, name) {
+            document.getElementById('resetEmployeeId').value = id;
+            document.getElementById('resetEmployeeName').textContent = name;
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+            
+            new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+        }
+
+        function resetPassword() {
+            const id = document.getElementById('resetEmployeeId').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                alert('Mật khẩu xác nhận không khớp');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                alert('Mật khẩu phải có ít nhất 6 ký tự');
+                return;
+            }
+
+            fetch('/Manager/ResetPassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `id=${id}&newPassword=${encodeURIComponent(newPassword)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal')).hide();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi đặt lại mật khẩu');
+            });
+        }
+
+        function deleteEmployee(id, name) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa nhân viên "${name}"?`)) return;
+
+            fetch(`/Manager/DeleteEmployee/${id}`, { 
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi xóa nhân viên');
+            });
+        }
+
+        // Validate password confirmation in add modal
+        document.querySelector('input[name="ConfirmPassword"]').addEventListener('input', function() {
+            const password = document.querySelector('input[name="Password"]').value;
+            const confirmPassword = this.value;
+            
+            if (password !== confirmPassword) {
+                this.setCustomValidity('Mật khẩu xác nhận không khớp');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+    </script>
+} 

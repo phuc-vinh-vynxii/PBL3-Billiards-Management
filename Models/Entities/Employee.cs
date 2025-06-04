@@ -39,7 +39,11 @@ public partial class Employee
 
     public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 
-    public virtual Order? Order { get; set; }
+    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
+
+    public virtual ICollection<EmployeePermission> EmployeePermissions { get; set; } = new List<EmployeePermission>();
+
+    public virtual ICollection<EmployeePermission> GrantedPermissions { get; set; } = new List<EmployeePermission>();
 }

@@ -57,6 +57,7 @@ namespace BilliardsManagement.Controllers
                 HttpContext.Session.SetInt32("EmployeeId", employee.EmployeeId);
                 HttpContext.Session.SetString("FullName", employee.FullName ?? "");
                 HttpContext.Session.SetString("Role", employee.Position ?? "");
+                HttpContext.Session.SetString("Username", employee.Username ?? "");
 
                 // Redirect based on role
                 switch (employee.Position?.ToUpper())

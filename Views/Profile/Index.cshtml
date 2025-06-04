@@ -1,0 +1,310 @@
+@model BilliardsManagement.Models.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "Thông tin cá nhân";
+    Layout = "_Layout";
+    
+    var roleDisplay = Model.Position switch
+    {
+        "MANAGER" => "Quản lý",
+        "CASHIER" => "Thu ngân", 
+        "SERVING" => "Phục vụ",
+        _ => Model.Position
+    };
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Profile Information Card -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle me-2"></i>Thông tin cá nhân
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="enableEdit()">
+                        <i class="bi bi-pencil me-1"></i>Chỉnh sửa
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="UpdateProfile" method="post" id="profileForm">
+                        <input type="hidden" asp-for="EmployeeId" />
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="FullName" class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                                    <input asp-for="FullName" class="form-control" disabled id="fullNameInput" />
+                                    <span asp-validation-for="FullName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Position" class="form-label">Chức vụ</label>
+                                    <input type="text" class="form-control" value="@roleDisplay" disabled readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Phone" class="form-label">Số điện thoại</label>
+                                    <input asp-for="Phone" class="form-control" disabled id="phoneInput" />
+                                    <span asp-validation-for="Phone" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Email" class="form-label">Email</label>
+                                    <input asp-for="Email" class="form-control" disabled id="emailInput" />
+                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Username" class="form-label">Tên đăng nhập</label>
+                                    <input asp-for="Username" class="form-control" disabled readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="CreatedAt" class="form-label">Ngày tạo tài khoản</label>
+                                    <input type="text" class="form-control" value="@Model.CreatedAt?.ToString("dd/MM/yyyy")" disabled readonly />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions" id="editActions" style="display: none;">
+                            <button type="submit" class="btn btn-success me-2">
+                                <i class="bi bi-check-lg me-1"></i>Lưu thay đổi
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="cancelEdit()">
+                                <i class="bi bi-x-lg me-1"></i>Hủy bỏ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Security Card -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shield-lock me-2"></i>Bảo mật tài khoản
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted">Đổi mật khẩu</h6>
+                        <p class="small text-muted">Để bảo mật tài khoản, bạn nên thay đổi mật khẩu định kỳ.</p>
+                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                            <i class="bi bi-key me-1"></i>Đổi mật khẩu
+                        </button>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted">Thống kê tài khoản</h6>
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="small">Chức vụ:</span>
+                            <span class="badge bg-primary">@roleDisplay</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="small">Tài khoản tạo:</span>
+                            <span class="small">@Model.CreatedAt?.ToString("dd/MM/yyyy")</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="small">Trạng thái:</span>
+                            <span class="badge bg-success">Hoạt động</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>Nếu bạn gặp vấn đề với tài khoản, vui lòng liên hệ quản trị viên.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-key me-2"></i>Đổi mật khẩu
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Mật khẩu hiện tại <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('currentPassword')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="newPassword" name="newPassword" required minlength="6">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('newPassword')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Mật khẩu phải có ít nhất 6 ký tự</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="changePassword()">
+                    <i class="bi bi-check-lg me-1"></i>Đổi mật khẩu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let originalValues = {};
+
+        function enableEdit() {
+            // Store original values
+            originalValues.fullName = document.getElementById('fullNameInput').value;
+            originalValues.phone = document.getElementById('phoneInput').value;
+            originalValues.email = document.getElementById('emailInput').value;
+
+            // Enable input fields
+            document.getElementById('fullNameInput').disabled = false;
+            document.getElementById('phoneInput').disabled = false;
+            document.getElementById('emailInput').disabled = false;
+
+            // Show edit actions
+            document.getElementById('editActions').style.display = 'block';
+
+            // Focus on first input
+            document.getElementById('fullNameInput').focus();
+        }
+
+        function cancelEdit() {
+            // Restore original values
+            document.getElementById('fullNameInput').value = originalValues.fullName;
+            document.getElementById('phoneInput').value = originalValues.phone;
+            document.getElementById('emailInput').value = originalValues.email;
+
+            // Disable input fields
+            document.getElementById('fullNameInput').disabled = true;
+            document.getElementById('phoneInput').disabled = true;
+            document.getElementById('emailInput').disabled = true;
+
+            // Hide edit actions
+            document.getElementById('editActions').style.display = 'none';
+        }
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+
+        function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validate inputs
+            if (!currentPassword) {
+                alert('Vui lòng nhập mật khẩu hiện tại');
+                return;
+            }
+
+            if (!newPassword || newPassword.length < 6) {
+                alert('Mật khẩu mới phải có ít nhất 6 ký tự');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('Mật khẩu xác nhận không khớp');
+                return;
+            }
+
+            // Send AJAX request
+            fetch('@Url.Action("ChangePassword", "Profile")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `currentPassword=${encodeURIComponent(currentPassword)}&newPassword=${encodeURIComponent(newPassword)}&confirmPassword=${encodeURIComponent(confirmPassword)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    // Close modal and reset form
+                    bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
+                    document.getElementById('changePasswordForm').reset();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi đổi mật khẩu');
+            });
+        }
+
+        // Reset password form when modal is hidden
+        document.getElementById('changePasswordModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('changePasswordForm').reset();
+            // Reset all password field types
+            ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
+                const input = document.getElementById(id);
+                const icon = input.nextElementSibling.querySelector('i');
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            });
+        });
+    </script>
+} 

@@ -34,15 +34,23 @@
                             <span asp-validation-for="Username" class="text-danger"></span>
                         </div>
 
-                        <div class="form-floating mb-3">
-                            <input asp-for="Password" class="form-control" placeholder="Mật khẩu" />
+                        <div class="form-floating mb-3 position-relative">
+                            <input asp-for="Password" class="form-control pe-5" placeholder="Mật khẩu" />
                             <label asp-for="Password"></label>
+                            <button type="button" class="btn position-absolute top-50 end-0 translate-middle-y me-3 p-0 border-0 bg-transparent" 
+                                    onclick="togglePasswordVisibility('Password', this)" style="z-index: 10;">
+                                <i class="bi bi-eye text-muted" style="font-size: 1.1rem;"></i>
+                            </button>
                             <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
 
-                        <div class="form-floating mb-3">
-                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Xác nhận mật khẩu" />
+                        <div class="form-floating mb-3 position-relative">
+                            <input asp-for="ConfirmPassword" class="form-control pe-5" placeholder="Xác nhận mật khẩu" />
                             <label asp-for="ConfirmPassword"></label>
+                            <button type="button" class="btn position-absolute top-50 end-0 translate-middle-y me-3 p-0 border-0 bg-transparent" 
+                                    onclick="togglePasswordVisibility('ConfirmPassword', this)" style="z-index: 10;">
+                                <i class="bi bi-eye text-muted" style="font-size: 1.1rem;"></i>
+                            </button>
                             <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
                         </div>
 
@@ -91,5 +99,19 @@
                 });
             }, 5000);
         });
+
+        // Toggle password visibility
+        function togglePasswordVisibility(inputId, button) {
+            const passwordInput = document.getElementById(inputId);
+            const icon = button.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'bi bi-eye-slash text-muted';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'bi bi-eye text-muted';
+            }
+        }
     </script>
 }

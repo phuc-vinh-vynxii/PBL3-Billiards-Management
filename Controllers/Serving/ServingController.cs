@@ -2,16 +2,43 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BilliardsManagement.Models.Entities;
 using BilliardsManagement.Models.ViewModels;
+using BilliardsManagement.Attributes;
+using BilliardsManagement.Services;
 
 namespace BilliardsManagement.Controllers;
 
 public class ServingController : Controller
 {
     private readonly BilliardsDbContext _context;
+    private readonly IPermissionService _permissionService;
+    private readonly ISessionService _sessionService;
+    private readonly IOrderManagementService _orderManagementService;
+    private readonly IInvoiceService _invoiceService;
+    private readonly ITableService _tableService;
+    private readonly IBookingService _bookingService;
+    private readonly ICustomerService _customerService;
+    private readonly IProductService _productService;
 
-    public ServingController(BilliardsDbContext context)
+    public ServingController(
+        BilliardsDbContext context, 
+        IPermissionService permissionService,
+        ISessionService sessionService,
+        IOrderManagementService orderManagementService,
+        IInvoiceService invoiceService,
+        ITableService tableService,
+        IBookingService bookingService,
+        ICustomerService customerService,
+        IProductService productService)
     {
         _context = context;
+        _permissionService = permissionService;
+        _sessionService = sessionService;
+        _orderManagementService = orderManagementService;
+        _invoiceService = invoiceService;
+        _tableService = tableService;
+        _bookingService = bookingService;
+        _customerService = customerService;
+        _productService = productService;
     }
 
     public async Task<IActionResult> Index()
@@ -21,10 +48,30 @@ public class ServingController : Controller
         {
             return RedirectToAction("Login", "Account");
         }
+        
+        // Check for error message from RequirePermissionAttribute
+        var tempError = HttpContext.Session.GetString("TempError");
+        if (!string.IsNullOrEmpty(tempError))
+        {
+            TempData["Error"] = tempError;
+            HttpContext.Session.Remove("TempError");
+        }
 
         var tables = await _context.Tables
             .Include(t => t.Sessions.Where(s => s.EndTime == null))
+            .OrderBy(t => t.TableId)
             .ToListAsync();
+
+        // Check if user has TABLE_TRANSFER permission
+        var employeeId = HttpContext.Session.GetInt32("EmployeeId");
+        bool hasTableTransferPermission = false;
+        
+        if (employeeId.HasValue)
+        {
+            hasTableTransferPermission = await _permissionService.HasPermissionAsync(employeeId.Value, "TABLE_TRANSFER");
+        }
+        
+        ViewBag.HasTableTransferPermission = hasTableTransferPermission;
 
         return View(tables);
     }
@@ -66,171 +113,66 @@ public class ServingController : Controller
     [HttpPost]
     public async Task<IActionResult> AddOrder(int tableId, int productId, int quantity)
     {
-        var session = await _context.Sessions
-            .FirstOrDefaultAsync(s => s.TableId == tableId && s.EndTime == null);
-
-        if (session == null)
-            return Json(new { success = false, message = "Không tìm thấy phiên hoạt động" });
-
-        var product = await _context.Products.FindAsync(productId);
-        if (product == null)
-            return Json(new { success = false, message = "Không tìm thấy sản phẩm" });
-
-        if (product.Quantity < quantity)
-            return Json(new { success = false, message = "Số lượng trong kho không đủ" });
-
-        var employeeIdStr = HttpContext.Session.GetString("EmployeeId");
-        if (string.IsNullOrEmpty(employeeIdStr) || !int.TryParse(employeeIdStr, out var employeeId))
+        var employeeId = HttpContext.Session.GetInt32("EmployeeId");
+        if (!employeeId.HasValue)
             return Json(new { success = false, message = "Không xác định được nhân viên" });
+
+        var result = await _orderManagementService.AddOrderAsync(tableId, productId, quantity, employeeId.Value);
         
-        var order = await _context.Orders
-            .FirstOrDefaultAsync(o => o.SessionId == session.SessionId && o.Status == "PENDING");
-
-        if (order == null)
-        {
-            order = new Order
-            {
-                SessionId = session.SessionId,
-                EmployeeId = employeeId,
-                Status = "PENDING"
-            };
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-        }
-
-        var orderDetail = new OrderDetail
-        {
-            OrderId = order.OrderId,
-            ProductId = productId,
-            Quantity = quantity,
-            UnitPrice = product.Price ?? 0
-        };
-
-        product.Quantity = (product.Quantity ?? 0) - quantity;
-        if (product.Quantity <= 0)
-            product.Status = "OUT_OF_STOCK";
-
-        _context.OrderDetails.Add(orderDetail);
-        await _context.SaveChangesAsync();
-
-        return Json(new { success = true });
+        return Json(new { success = result.Success, message = result.Message });
     }
 
     [HttpPost]
     public async Task<IActionResult> RemoveOrderDetail(int orderDetailId)
     {
-        var orderDetail = await _context.OrderDetails
-            .Include(od => od.Product)
-            .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId);
-
-        if (orderDetail == null)
-            return Json(new { success = false, message = "Không tìm thấy chi tiết đơn hàng" });
-
-        if (orderDetail.Product != null)
-        {
-            orderDetail.Product.Quantity = (orderDetail.Product.Quantity ?? 0) + orderDetail.Quantity;
-            if (orderDetail.Product.Quantity > 0)
-                orderDetail.Product.Status = "AVAILABLE";
-        }
-
-        _context.OrderDetails.Remove(orderDetail);
-        await _context.SaveChangesAsync();
-
-        return Json(new { success = true });
+        var result = await _orderManagementService.RemoveOrderDetailAsync(orderDetailId);
+        
+        return Json(new { success = result.Success, message = result.Message });
     }
 
     [HttpGet]
     public async Task<IActionResult> StartTable(int id)
     {
-        // Check if table is already in use
-        var isTableInUse = await _context.Sessions
-            .AnyAsync(s => s.TableId == id && s.EndTime == null);
-            
-        if (isTableInUse)
-        {
-            TempData["Error"] = "Bàn đang được sử dụng";
-            return RedirectToAction(nameof(Index));
-        }
-        
-        var employeeIdStr = HttpContext.Session.GetString("EmployeeId");
-        if (string.IsNullOrEmpty(employeeIdStr) || !int.TryParse(employeeIdStr, out var employeeId))
+        var employeeId = HttpContext.Session.GetInt32("EmployeeId");
+        if (!employeeId.HasValue)
         {
             TempData["Error"] = "Không xác định được nhân viên";
             return RedirectToAction(nameof(Index));
         }
+
+        var result = await _sessionService.StartSessionAsync(id, employeeId.Value);
         
-        // Create new session
-        var session = new Session
+        if (result.Success)
         {
-            TableId = id,
-            EmployeeId = employeeId,
-            StartTime = DateTime.Now,
-            EndTime = null,
-            TableTotal = 0,
-            TotalTime = 0
-        };
-        
-        _context.Sessions.Add(session);
-        await _context.SaveChangesAsync();
-        
-        // Create an initial pending order for this session
-        var order = new Order
-        {
-            SessionId = session.SessionId,
-            EmployeeId = employeeId,
-            CreatedAt = DateTime.Now,
-            Status = "PENDING"
-        };
-        
-        _context.Orders.Add(order);
-        
-        // Update table status
-        var table = await _context.Tables.FindAsync(id);
-        if (table != null)
-        {
-            table.Status = "IN_USE";
+            TempData["Success"] = "Bắt đầu sử dụng bàn thành công";
+            return RedirectToAction("Table", new { id });
         }
-        
-        await _context.SaveChangesAsync();
-        
-        TempData["Success"] = "Bắt đầu sử dụng bàn thành công";
-        return RedirectToAction("Table", new { id });
+        else
+        {
+            TempData["Error"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAvailableProducts()
     {
-        var products = await _context.Products
-            .Where(p => (p.ProductType == ProductType.FOOD || p.ProductType == ProductType.BEVERAGE) 
-                      && p.Status == "AVAILABLE" && p.Quantity > 0)
-            .Select(p => new {
-                productId = p.ProductId,
-                productName = p.ProductName,
-                productType = p.ProductType.ToString(),
-                price = p.Price,
-                quantity = p.Quantity
-            })
-            .ToListAsync();
-            
+        var products = await _productService.GetAvailableProductsAsync();
         return Json(products);
     }
     
     [HttpGet]
     public async Task<IActionResult> GetCurrentOrder(int sessionId)
     {
-        var orderDetails = await _context.OrderDetails
-            .Include(od => od.Order)
-            .Include(od => od.Product)
-            .Where(od => od.Order != null && od.Order.SessionId == sessionId && od.Order.Status == "PENDING")
-            .Select(od => new {
-                orderDetailId = od.OrderDetailId,
-                productName = od.Product.ProductName,
-                quantity = od.Quantity,
-                unitPrice = od.UnitPrice
-            })
-            .ToListAsync();
-            
-        return Json(orderDetails);
+        var orderDetails = await _orderManagementService.GetOrderDetailsBySessionAsync(sessionId);
+        var result = orderDetails.Select(od => new {
+            orderDetailId = od.OrderDetailId,
+            productName = od.Product?.ProductName,
+            quantity = od.Quantity,
+            unitPrice = od.UnitPrice
+        }).ToList();
+        
+        return Json(result);
     }
     
     [HttpGet]
@@ -243,78 +185,288 @@ public class ServingController : Controller
             TempData["Error"] = "Bạn không có quyền thực hiện chức năng này";
             return RedirectToAction(nameof(Index));
         }
-        
-        // Tìm phiên hiện tại
-        var session = await _context.Sessions
-            .Include(s => s.Table)
-            .Include(s => s.Orders)
-                .ThenInclude(o => o.OrderDetails)
-                    .ThenInclude(od => od.Product)
-            .FirstOrDefaultAsync(s => s.SessionId == sessionId && s.EndTime == null);
-                
-        if (session == null)
+
+        var employeeId = HttpContext.Session.GetInt32("EmployeeId");
+        if (!employeeId.HasValue)
         {
-            TempData["Error"] = "Không tìm thấy phiên sử dụng hoặc phiên đã kết thúc";
+            TempData["Error"] = "Không xác định được nhân viên";
             return RedirectToAction(nameof(Index));
         }
+
+        var result = await _sessionService.EndSessionAsync(sessionId);
         
-        // Kết thúc phiên
-        var now = DateTime.Now;
-        session.EndTime = now;
-        
-        // Tính tổng thời gian sử dụng (tính chính xác bằng giờ)
-        if (session.StartTime.HasValue)
+        if (result.Success)
         {
-            var timeUsed = now - session.StartTime.Value;
-            session.TotalTime = (decimal)timeUsed.TotalHours;
-            
-            // Tính tiền bàn
-            if (session.Table?.PricePerHour.HasValue == true)
-            {
-                session.TableTotal = session.Table.PricePerHour.Value * (decimal)timeUsed.TotalHours;
-            }
+            TempData["Success"] = "Kết thúc phiên sử dụng bàn thành công";
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
         }
         
-        // Tính tổng tiền dịch vụ
-        decimal orderTotal = 0;
-        foreach (var order in session.Orders)
-        {
-            foreach (var detail in order.OrderDetails)
-            {
-                orderTotal += (detail.UnitPrice ?? 0) * (detail.Quantity ?? 0);
-            }
-            
-            // Cập nhật trạng thái đơn hàng
-            order.Status = "COMPLETED";
-        }
-        
-        // Tạo hóa đơn
-        var employeeIdStr = HttpContext.Session.GetString("EmployeeId");
-        if (!string.IsNullOrEmpty(employeeIdStr) && int.TryParse(employeeIdStr, out var employeeId))
-        {
-            var invoice = new Invoice
-            {
-                SessionId = sessionId,
-                CashierId = employeeId,
-                TotalAmount = (session.TableTotal ?? 0) + orderTotal,
-                PaymentTime = now,
-                PaymentMethod = "CASH", // Mặc định là tiền mặt
-                Status = "PAID",
-                Discount = 0
-            };
-            
-            _context.Invoices.Add(invoice);
-        }
-        
-        // Cập nhật trạng thái bàn
-        if (session.Table != null)
-        {
-            session.Table.Status = "AVAILABLE";
-        }
-        
-        await _context.SaveChangesAsync();
-        
-        TempData["Success"] = "Kết thúc phiên sử dụng bàn thành công";
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    [RequirePermission("PAYMENT_PROCESS")]
+    public async Task<IActionResult> GetPendingInvoices()
+    {
+        try
+        {
+            var pendingInvoices = await _context.Invoices
+                .Include(i => i.Session)
+                .ThenInclude(s => s.Table)
+                .Where(i => i.Status == "PENDING" && 
+                           i.Session != null && 
+                           i.Session.EndTime == null)
+                .OrderBy(i => i.Session.StartTime)
+                .ToListAsync();
+
+            var invoiceData = new List<object>();
+            
+            foreach (var invoice in pendingInvoices)
+            {
+                var currentDuration = invoice.Session?.StartTime != null 
+                    ? DateTime.Now - invoice.Session.StartTime.Value
+                    : TimeSpan.Zero;
+
+                // Use InvoiceService for accurate calculations
+                var (tableTotal, serviceTotal, grandTotal) = await _invoiceService.CalculateInvoiceTotalsAsync(invoice.Session!.SessionId);
+                
+                invoiceData.Add(new
+                {
+                    invoiceId = invoice.InvoiceId,
+                    tableId = invoice.Session?.TableId ?? 0,
+                    tableName = invoice.Session?.Table?.TableName?.Replace("Bàn ", "") ?? "N/A",
+                    sessionId = invoice.Session?.SessionId ?? 0,
+                    startTime = invoice.Session?.StartTime?.ToString("HH:mm dd/MM") ?? "",
+                    currentDuration = FormatDuration(currentDuration),
+                    pricePerHour = invoice.Session?.Table?.PricePerHour ?? 0,
+                    currentTableTotal = tableTotal,
+                    serviceTotal = serviceTotal,
+                    grandTotal = grandTotal
+                });
+            }
+
+            return Json(new { success = true, data = invoiceData });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    [RequirePermission("PAYMENT_PROCESS")]
+    public async Task<IActionResult> ProcessPayment(int invoiceId, string paymentMethod = "CASH")
+    {
+        try
+        {
+            var employeeId = HttpContext.Session.GetInt32("EmployeeId");
+            if (!employeeId.HasValue)
+            {
+                return Json(new { success = false, message = "Không xác định được nhân viên!" });
+            }
+
+            // Validate payment method
+            var validPaymentMethods = new[] { "CASH", "CARD", "QR_PAY" };
+            if (!validPaymentMethods.Contains(paymentMethod))
+            {
+                return Json(new { success = false, message = "Phương thức thanh toán không hợp lệ!" });
+            }
+
+            var invoice = await _context.Invoices
+                .Include(i => i.Session)
+                .ThenInclude(s => s.Table)
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId && i.Status == "PENDING");
+
+            if (invoice == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy hóa đơn chưa thanh toán!" });
+            }
+
+            if (invoice.Session?.EndTime != null)
+            {
+                return Json(new { success = false, message = "Phiên chơi đã kết thúc!" });
+            }
+
+            // Use InvoiceService for accurate calculations
+            var (tableTotal, serviceTotal, grandTotal) = await _invoiceService.CalculateInvoiceTotalsByInvoiceIdAsync(invoiceId);
+
+            // End the session using SessionService
+            var endResult = await _sessionService.EndSessionAsync(invoice.Session!.SessionId);
+            if (!endResult.Success)
+            {
+                return Json(new { success = false, message = endResult.Message });
+            }
+
+            // Update invoice
+            invoice.CashierId = employeeId.Value;
+            invoice.TotalAmount = grandTotal;
+            invoice.PaymentTime = DateTime.Now;
+            invoice.PaymentMethod = paymentMethod;
+            invoice.Status = "COMPLETED";
+
+            await _context.SaveChangesAsync();
+
+            return Json(new 
+            { 
+                success = true, 
+                message = "Thanh toán thành công!",
+                data = new 
+                {
+                    invoiceId = invoice.InvoiceId,
+                    tableName = invoice.Session?.Table?.TableName?.Replace("Bàn ", "") ?? "N/A",
+                    totalAmount = grandTotal,
+                    paymentMethod = paymentMethod,
+                    paymentTime = DateTime.Now.ToString("HH:mm dd/MM/yyyy")
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+    // Helper method to format duration
+    private string FormatDuration(TimeSpan duration)
+    {
+        int hours = (int)duration.TotalHours;
+        int minutes = duration.Minutes;
+        return $"{hours}h {minutes}m";
+    }
+
+    // Booking functionality
+    [HttpGet]
+    public async Task<IActionResult> Booking()
+    {
+        var viewModel = await _bookingService.GetBookingDataAsync();
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateReservation(int tableId, int customerId, DateTime bookingDate, string startTimeStr, string endTimeStr, string notes = "")
+    {
+        var result = await _bookingService.CreateReservationAsync(tableId, customerId, bookingDate.ToString("yyyy-MM-dd"), startTimeStr, endTimeStr, notes);
+        
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+        
+        return RedirectToAction("Booking");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> StartSession(int tableId, int? reservationId = null, int? customerId = null)
+    {
+        var employeeId = HttpContext.Session.GetInt32("EmployeeId");
+        if (!employeeId.HasValue)
+        {
+            TempData["Error"] = "Không xác định được nhân viên";
+            return RedirectToAction("Booking");
+        }
+
+        var result = await _bookingService.StartSessionAsync(tableId, employeeId.Value, customerId, reservationId);
+        
+        if (result.Success)
+        {
+            TempData["Success"] = result.Message;
+        }
+        else
+        {
+            TempData["Error"] = result.Message;
+        }
+        
+        return RedirectToAction("Booking");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateCustomer([FromBody] Customer customer)
+    {
+        var result = await _customerService.CreateCustomerAsync(customer);
+        
+        if (!result.Success)
+        {
+            return BadRequest(new { error = result.Message });
+        }
+
+        return Ok(new { 
+            customerId = result.Customer!.CustomerId,
+            fullName = result.Customer!.FullName,
+            phone = result.Customer!.Phone
+        });
+    }
+
+    // Table Transfer functionality (same as Manager)
+    [HttpGet]
+    [RequirePermission("TABLE_TRANSFER")]
+    public async Task<IActionResult> TableTransfer()
+    {
+        var occupiedTables = await _tableService.GetOccupiedTablesWithSessionsAsync();
+        var availableTables = await _tableService.GetAvailableTablesAsync();
+
+        var viewModel = new TableTransferViewModel
+        {
+            OccupiedTables = occupiedTables,
+            AvailableTables = availableTables
+        };
+
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    [RequirePermission("TABLE_TRANSFER")]
+    public async Task<IActionResult> TransferTable(int fromTableId, int toTableId)
+    {
+        // Get employee ID for audit trail
+        var employeeId = HttpContext.Session.GetInt32("EmployeeId");
+        if (!employeeId.HasValue)
+        {
+            return Json(new { success = false, message = "Không xác định được nhân viên thực hiện" });
+        }
+
+        var success = await _tableService.TransferTableAsync(fromTableId, toTableId, employeeId.Value);
+        
+        if (success)
+        {
+            // Get table names for response
+            var fromTable = await _tableService.GetTableByIdAsync(fromTableId);
+            var toTable = await _tableService.GetTableByIdAsync(toTableId);
+            
+            return Json(new 
+            { 
+                success = true, 
+                message = $"Đã chuyển thành công từ {fromTable?.TableName} sang {toTable?.TableName}",
+                data = new 
+                {
+                    fromTable = fromTable?.TableName,
+                    toTable = toTable?.TableName,
+                    transferTime = DateTime.Now
+                }
+            });
+        }
+        else
+        {
+            return Json(new { success = false, message = "Không thể chuyển bàn. Vui lòng kiểm tra lại." });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetTableTransferInfo(int tableId)
+    {
+        var result = await _tableService.GetTableTransferInfoAsync(tableId);
+        
+        if (result == null)
+        {
+            return Json(new { success = false, message = "Không tìm thấy thông tin bàn hoặc bàn không có phiên hoạt động" });
+        }
+        
+        return Json(new { success = true, data = result });
     }
 }

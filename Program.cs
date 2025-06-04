@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using BilliardsManagement.Models.Entities;
+using BilliardsManagement.Services;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,19 @@ builder.Services.AddDbContext<BilliardsDbContext>(options =>
     options.EnableSensitiveDataLogging();
 });
 
+// Register services
+builder.Services.AddScoped<IRevenueService, RevenueService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<ITableService, TableService>();
+builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IOrderManagementService, OrderManagementService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 
 var app = builder.Build();
 

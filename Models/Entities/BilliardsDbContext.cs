@@ -35,6 +35,10 @@ public partial class BilliardsDbContext : DbContext
 
     public virtual DbSet<Table> Tables { get; set; }
 
+    public virtual DbSet<Permission> Permissions { get; set; }
+
+    public virtual DbSet<EmployeePermission> EmployeePermissions { get; set; }
+
     // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     // {
     //     // if (_configuration == null)
@@ -98,8 +102,8 @@ public partial class BilliardsDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(d => d.OrderNavigation)
-                .WithOne(p => p.Order)
-                .HasForeignKey<Order>(d => d.EmployeeId)
+                .WithMany(p => p.Orders)
+                .HasForeignKey(d => d.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -173,6 +177,35 @@ public partial class BilliardsDbContext : DbContext
             entity.Property(e => e.TableType).HasMaxLength(10);
             entity.Property(e => e.Status).HasMaxLength(15);
             entity.Property(e => e.PricePerHour).HasColumnType("decimal(10,2)");
+        });
+
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.Property(e => e.PermissionId).ValueGeneratedOnAdd();
+            entity.Property(e => e.PermissionName).HasMaxLength(50);
+            entity.Property(e => e.DisplayName).HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(200);
+            entity.Property(e => e.Category).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<EmployeePermission>(entity =>
+        {
+            entity.Property(e => e.EmployeePermissionId).ValueGeneratedOnAdd();
+
+            entity.HasOne(d => d.Employee)
+                .WithMany(p => p.EmployeePermissions)
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Permission)
+                .WithMany(p => p.EmployeePermissions)
+                .HasForeignKey(d => d.PermissionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.GrantedByEmployee)
+                .WithMany(p => p.GrantedPermissions)
+                .HasForeignKey(d => d.GrantedBy)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

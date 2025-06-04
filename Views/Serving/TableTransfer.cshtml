@@ -1,0 +1,302 @@
+@model BilliardsManagement.Models.ViewModels.TableTransferViewModel
+@{
+    ViewData["Title"] = "Chuyển bàn - Nhân viên phục vụ";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <a asp-controller="Serving" asp-action="Index" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left me-2"></i>Quay lại
+            </a>
+            <h2 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Chuyển bàn</h2>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Transfer Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Thực hiện chuyển bàn</h5>
+                </div>
+                <div class="card-body">
+                    <form id="transferForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fromTable" class="form-label fw-bold">Bàn nguồn (đang sử dụng) *</label>
+                                    <select class="form-select" id="fromTable" name="fromTableId" required>
+                                        <option value="">-- Chọn bàn đang sử dụng --</option>
+                                        @foreach (var table in Model.OccupiedTables)
+                                        {
+                                            <option value="@table.TableId" data-table-name="@table.TableName">
+                                                @table.TableName (@table.TableType)
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="toTable" class="form-label fw-bold">Bàn đích (trống) *</label>
+                                    <select class="form-select" id="toTable" name="toTableId" required>
+                                        <option value="">-- Chọn bàn trống --</option>
+                                        @foreach (var table in Model.AvailableTables)
+                                        {
+                                            <option value="@table.TableId" data-table-name="@table.TableName">
+                                                @table.TableName (@table.TableType) - @table.PricePerHour?.ToString("N0")₫/giờ
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="transferBtn">
+                                <i class="bi bi-arrow-left-right me-2"></i>Thực hiện chuyển bàn
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Information Panel -->
+            <div class="card mt-4" id="infoPanel" style="display: none;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin bàn nguồn</h5>
+                </div>
+                <div class="card-body" id="tableInfo">
+                    <!-- Table information will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Hướng dẫn</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Chức năng chuyển bàn:</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Chuyển phiên chơi từ bàn này sang bàn khác
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Giữ nguyên thời gian đã chơi
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Giữ nguyên tất cả dịch vụ đã gọi
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Tiếp tục tính thời gian tại bàn mới
+                        </li>
+                    </ul>
+
+                    <hr>
+
+                    <h6 class="text-danger">Lưu ý quan trọng:</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-exclamation-circle text-danger me-2"></i>
+                            Chỉ chuyển được bàn đang có khách
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-exclamation-circle text-danger me-2"></i>
+                            Bàn đích phải đang trống
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-exclamation-circle text-danger me-2"></i>
+                            Không thể hoàn tác sau khi chuyển
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            @if (!Model.OccupiedTables.Any())
+            {
+                <div class="alert alert-warning mt-4">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Hiện tại không có bàn nào đang được sử dụng.
+                </div>
+            }
+
+            @if (!Model.AvailableTables.Any())
+            {
+                <div class="alert alert-warning mt-4">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Hiện tại không có bàn trống để chuyển đến.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Load table information when source table is selected
+            $('#fromTable').change(function() {
+                const tableId = $(this).val();
+                if (tableId) {
+                    loadTableInfo(tableId);
+                } else {
+                    $('#infoPanel').hide();
+                }
+            });
+
+            // Handle form submission
+            $('#transferForm').submit(function(e) {
+                e.preventDefault();
+                
+                const fromTableId = $('#fromTable').val();
+                const toTableId = $('#toTable').val();
+                const fromTableName = $('#fromTable option:selected').data('table-name');
+                const toTableName = $('#toTable option:selected').data('table-name');
+                
+                if (!fromTableId || !toTableId) {
+                    alert('Vui lòng chọn cả bàn nguồn và bàn đích');
+                    return;
+                }
+                
+                if (fromTableId === toTableId) {
+                    alert('Bàn nguồn và bàn đích không thể giống nhau');
+                    return;
+                }
+                
+                if (!confirm(`Bạn có chắc chắn muốn chuyển từ ${fromTableName} sang ${toTableName}?\n\nHành động này không thể hoàn tác!`)) {
+                    return;
+                }
+                
+                transferTable(fromTableId, toTableId);
+            });
+        });
+
+        function loadTableInfo(tableId) {
+            $.get('@Url.Action("GetTableTransferInfo", "Serving")', { tableId: tableId })
+                .done(function(response) {
+                    if (response.success) {
+                        displayTableInfo(response.data);
+                        $('#infoPanel').show();
+                    } else {
+                        alert('Lỗi: ' + response.message);
+                        $('#infoPanel').hide();
+                    }
+                })
+                .fail(function() {
+                    alert('Có lỗi xảy ra khi tải thông tin bàn');
+                    $('#infoPanel').hide();
+                });
+        }
+
+        function displayTableInfo(data) {
+            const html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <strong>Bàn:</strong> ${data.tableName}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Loại bàn:</strong> 
+                            <span class="badge ${data.tableType === 'VIP' ? 'bg-warning' : 'bg-info'}">${data.tableType}</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Giá/giờ:</strong> ${formatCurrency(data.pricePerHour)}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <strong>Bắt đầu:</strong> ${data.startTime}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Đã chơi:</strong> ${data.duration}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Tiền bàn:</strong> <span class="text-primary fw-bold">${formatCurrency(data.tableTotal)}</span>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Tiền dịch vụ:</strong> <span class="text-info fw-bold">${formatCurrency(data.serviceTotal)}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tổng cộng:</strong> <span class="text-success fw-bold">${formatCurrency(data.grandTotal)}</span>
+                    </div>
+                </div>
+                ${data.orderDetails && data.orderDetails.length > 0 ? generateOrderDetailsHtml(data.orderDetails) : ''}
+            `;
+            
+            $('#tableInfo').html(html);
+        }
+
+        function generateOrderDetailsHtml(orderDetails) {
+            let html = '<hr><h6>Dịch vụ đã gọi:</h6><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Tên món</th><th>SL</th><th>Thành tiền</th></tr></thead><tbody>';
+            
+            orderDetails.forEach(item => {
+                html += `<tr><td>${item.productName}</td><td>${item.quantity}</td><td>${formatCurrency(item.total)}</td></tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            return html;
+        }
+
+        function transferTable(fromTableId, toTableId) {
+            const $btn = $('#transferBtn');
+            const originalText = $btn.html();
+            
+            $btn.prop('disabled', true).html('<i class="spinner-border spinner-border-sm me-2"></i>Đang chuyển...');
+            
+            $.post('@Url.Action("TransferTable", "Serving")', {
+                fromTableId: fromTableId,
+                toTableId: toTableId
+            })
+            .done(function(response) {
+                if (response.success) {
+                    alert('Thành công: ' + response.message);
+                    window.location.reload();
+                } else {
+                    alert('Lỗi: ' + response.message);
+                }
+            })
+            .fail(function() {
+                alert('Có lỗi xảy ra khi thực hiện chuyển bàn');
+            })
+            .always(function() {
+                $btn.prop('disabled', false).html(originalText);
+            });
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+    </script>
+} 
