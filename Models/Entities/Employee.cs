@@ -46,4 +46,8 @@ public partial class Employee
     public virtual ICollection<EmployeePermission> EmployeePermissions { get; set; } = new List<EmployeePermission>();
 
     public virtual ICollection<EmployeePermission> GrantedPermissions { get; set; } = new List<EmployeePermission>();
+
+    public virtual ICollection<ShiftAssignment> ShiftAssignments { get; set; } = new List<ShiftAssignment>();
+
+    public virtual ICollection<ShiftAssignment> CreatedShiftAssignments { get; set; } = new List<ShiftAssignment>();
 }

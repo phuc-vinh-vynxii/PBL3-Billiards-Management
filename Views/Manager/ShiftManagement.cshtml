@@ -1,0 +1,552 @@
+@model BilliardsManagement.Models.ViewModels.ShiftManagementViewModel
+@{
+    ViewData["Title"] = "Quản lý ca làm việc";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <!-- Alert Messages -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-week me-2"></i>Quản lý ca làm việc</h2>
+        <div>
+            <button class="btn btn-success me-2" onclick="exportShiftSchedule()" 
+                    data-bs-toggle="tooltip" data-bs-placement="bottom" 
+                    title="Xuất lịch ca làm việc tuần hiện tại ra file CSV/Excel với đầy đủ thông tin phân công và thống kê">
+                <i class="bi bi-file-earmark-excel me-2"></i>Xuất Excel
+            </button>
+            <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createShiftModal">
+                <i class="bi bi-plus-circle me-2"></i>Tạo ca mới
+            </button>
+            <a href="@Url.Action("Index")" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Quay về Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Week Navigation -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="@Url.Action("ShiftManagement", new { weekStart = Model.CurrentWeekStart.AddDays(-7) })" class="btn btn-outline-primary">
+                    <i class="bi bi-chevron-left"></i> Tuần trước
+                </a>
+                <div class="text-center">
+                    <h4 class="mb-1">
+                        Tuần từ @Model.CurrentWeekStart.ToString("dd/MM/yyyy") đến @Model.CurrentWeekEnd.ToString("dd/MM/yyyy")
+                    </h4>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Có thể xuất lịch ca này ra Excel để chia sẻ hoặc in ấn
+                    </small>
+                </div>
+                <a href="@Url.Action("ShiftManagement", new { weekStart = Model.CurrentWeekStart.AddDays(7) })" class="btn btn-outline-primary">
+                    Tuần sau <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shift Management -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-clock me-2"></i>Danh sách ca làm việc</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var shift in Model.Shifts)
+                        {
+                            <div class="col-md-3 mb-3">
+                                <div class="card shift-card" data-shift-id="@shift.ShiftId">
+                                    <div class="card-body">
+                                        <h6 class="card-title">@shift.ShiftName</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                @shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")
+                                            </small>
+                                        </p>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary btn-edit-shift" 
+                                                    data-shift-id="@shift.ShiftId"
+                                                    data-shift-name="@shift.ShiftName"
+                                                    data-start-time="@shift.StartTime.ToString("HH:mm")"
+                                                    data-end-time="@shift.EndTime.ToString("HH:mm")"
+                                                    data-description="@shift.Description">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-delete-shift" data-shift-id="@shift.ShiftId">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Schedule -->
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="bi bi-calendar-week me-2"></i>Lịch phân công tuần</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered schedule-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 200px;">Nhân viên</th>
+                            <th>Thứ 2</th>
+                            <th>Thứ 3</th>
+                            <th>Thứ 4</th>
+                            <th>Thứ 5</th>
+                            <th>Thứ 6</th>
+                            <th>Thứ 7</th>
+                            <th>Chủ nhật</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var employee in Model.WeeklyAssignments)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@employee.EmployeeName</strong><br>
+                                    <small class="text-muted">@employee.Position</small>
+                                </td>
+                                @for (int day = 1; day <= 7; day++)
+                                {
+                                    var dayOfWeek = (DayOfWeek)(day % 7);
+                                    var currentDate = Model.CurrentWeekStart.AddDays(day - 1);
+                                    <td class="schedule-cell" 
+                                        data-employee-id="@employee.EmployeeId" 
+                                        data-date="@currentDate.ToString("yyyy-MM-dd")" 
+                                        data-day-of-week="@((int)dayOfWeek)">
+                                        @if (employee.DailyShifts.ContainsKey(dayOfWeek))
+                                        {
+                                            @foreach (var shift in employee.DailyShifts[dayOfWeek])
+                                            {
+                                                <div class="shift-assignment @(shift.IsAssigned ? "assigned" : "available")" 
+                                                     data-shift-id="@shift.ShiftId" 
+                                                     data-assignment-id="@shift.AssignmentId">
+                                                    <small>
+                                                        @shift.ShiftName<br>
+                                                        @shift.StartTime.ToString("HH:mm")-@shift.EndTime.ToString("HH:mm")
+                                                    </small>
+                                                    @if (shift.IsAssigned)
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-danger unassign-btn" 
+                                                                data-assignment-id="@shift.AssignmentId">
+                                                            <i class="bi bi-x"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-success assign-btn" 
+                                                                data-employee-id="@employee.EmployeeId"
+                                                                data-shift-id="@shift.ShiftId"
+                                                                data-date="@currentDate.ToString("yyyy-MM-dd")"
+                                                                data-day-of-week="@((int)dayOfWeek)">
+                                                            <i class="bi bi-plus"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            }
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Shift Modal -->
+<div class="modal fade" id="createShiftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="CreateShift" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tạo ca làm việc mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên ca làm việc</label>
+                        <input type="text" name="ShiftName" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Giờ bắt đầu</label>
+                            <input type="time" name="StartTime" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Giờ kết thúc</label>
+                            <input type="time" name="EndTime" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea name="Description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tạo ca làm việc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Shift Modal -->
+<div class="modal fade" id="editShiftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editShiftForm" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chỉnh sửa ca làm việc</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editShiftId" name="shiftId">
+                    <div class="mb-3">
+                        <label class="form-label">Tên ca làm việc</label>
+                        <input type="text" id="editShiftName" name="ShiftName" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Giờ bắt đầu</label>
+                            <input type="time" id="editStartTime" name="StartTime" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Giờ kết thúc</label>
+                            <input type="time" id="editEndTime" name="EndTime" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea id="editDescription" name="Description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Cập nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Edit shift
+            $('.btn-edit-shift').click(function() {
+                const shiftId = $(this).data('shift-id');
+                const shiftName = $(this).data('shift-name');
+                const startTime = $(this).data('start-time');
+                const endTime = $(this).data('end-time');
+                const description = $(this).data('description');
+                
+                $('#editShiftId').val(shiftId);
+                $('#editShiftName').val(shiftName);
+                $('#editStartTime').val(startTime);
+                $('#editEndTime').val(endTime);
+                $('#editDescription').val(description);
+                $('#editShiftForm').attr('action', '@Url.Action("UpdateShift")');
+                
+                $('#editShiftModal').modal('show');
+            });
+            
+            // Delete shift
+            $('.btn-delete-shift').click(function() {
+                const shiftId = $(this).data('shift-id');
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Xác nhận xóa',
+                        text: 'Bạn có chắc chắn muốn xóa ca làm việc này?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Xóa',
+                        cancelButtonText: 'Hủy'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteShift(shiftId);
+                        }
+                    });
+                } else {
+                    if (confirm('Bạn có chắc chắn muốn xóa ca làm việc này?')) {
+                        deleteShift(shiftId);
+                    }
+                }
+            });
+            
+            // Assign shift
+            $('.assign-btn').click(function() {
+                const $btn = $(this);
+                const employeeId = $btn.data('employee-id');
+                const shiftId = $btn.data('shift-id');
+                const date = $btn.data('date');
+                const dayOfWeek = $btn.data('day-of-week');
+                
+                // Debug: Log data attributes
+                console.log('Debug assign data:', {
+                    employeeId: employeeId,
+                    shiftId: shiftId,
+                    date: date,
+                    dayOfWeek: dayOfWeek,
+                    employeeIdType: typeof employeeId,
+                    shiftIdType: typeof shiftId,
+                    dayOfWeekType: typeof dayOfWeek
+                });
+                
+                // Validate required data
+                if (!employeeId || !shiftId || !date || dayOfWeek === undefined || dayOfWeek === null) {
+                    showError('Thiếu dữ liệu cần thiết để phân công ca. Vui lòng refresh trang và thử lại.');
+                    return;
+                }
+                
+                // Disable button during request
+                $btn.prop('disabled', true).html('<i class="spinner-border spinner-border-sm"></i>');
+                
+                const request = {
+                    employeeId: parseInt(employeeId),
+                    shiftId: parseInt(shiftId),
+                    assignedDate: date,
+                    dayOfWeek: parseInt(dayOfWeek)
+                };
+                
+                // Debug: Log final request
+                console.log('Final request data:', request);
+                
+                $.ajax({
+                    url: '@Url.Action("AssignShift")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(request),
+                    success: function(response) {
+                        console.log('Server response:', response);
+                        if (response.success) {
+                            showSuccess(response.message);
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showError(response.message);
+                            // Re-enable button on error
+                            $btn.prop('disabled', false).html('<i class="bi bi-plus"></i>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', xhr.responseText);
+                        showError('Có lỗi xảy ra khi phân công ca làm việc: ' + error);
+                        $btn.prop('disabled', false).html('<i class="bi bi-plus"></i>');
+                    }
+                });
+            });
+            
+            // Unassign shift
+            $('.unassign-btn').click(function() {
+                const $btn = $(this);
+                const assignmentId = $btn.data('assignment-id');
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Xác nhận hủy phân công',
+                        text: 'Bạn có chắc chắn muốn hủy phân công ca này?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Hủy phân công',
+                        cancelButtonText: 'Không'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            unassignShift(assignmentId, $btn);
+                        }
+                    });
+                } else {
+                    if (confirm('Bạn có chắc chắn muốn hủy phân công ca này?')) {
+                        unassignShift(assignmentId, $btn);
+                    }
+                }
+            });
+        });
+        
+        function deleteShift(shiftId) {
+            $.post('@Url.Action("DeleteShift")', { shiftId: shiftId }, function(response) {
+                showSuccess('Xóa ca làm việc thành công');
+                setTimeout(() => location.reload(), 1500);
+            }).fail(function() {
+                showError('Có lỗi xảy ra khi xóa ca làm việc');
+            });
+        }
+        
+        function unassignShift(assignmentId, $btn) {
+            $btn.prop('disabled', true).html('<i class="spinner-border spinner-border-sm"></i>');
+            
+            $.post('@Url.Action("UnassignShift")', { assignmentId: assignmentId }, function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showError(response.message);
+                    $btn.prop('disabled', false).html('<i class="bi bi-x"></i>');
+                }
+            }).fail(function() {
+                showError('Có lỗi xảy ra khi hủy phân công ca');
+                $btn.prop('disabled', false).html('<i class="bi bi-x"></i>');
+            });
+        }
+        
+        function showSuccess(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công!',
+                    text: message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else if (typeof toastr !== 'undefined') {
+                toastr.success(message);
+            } else {
+                alert(message);
+            }
+        }
+        
+        function showError(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi!',
+                    text: message,
+                    confirmButtonText: 'Đóng'
+                });
+            } else if (typeof toastr !== 'undefined') {
+                toastr.error(message);
+            } else {
+                alert('Lỗi: ' + message);
+            }
+        }
+        
+        function exportShiftSchedule() {
+            // Get current week from URL or default to current week
+            const urlParams = new URLSearchParams(window.location.search);
+            const weekStart = urlParams.get('weekStart') || '@Model.CurrentWeekStart.ToString("yyyy-MM-dd")';
+            
+            // Show loading
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Đang xuất file...',
+                    text: 'Vui lòng chờ trong giây lát',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+            
+            // Create a form to download the file
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '@Url.Action("ExportShiftSchedule")';
+            form.style.display = 'none';
+            
+            const weekStartInput = document.createElement('input');
+            weekStartInput.type = 'hidden';
+            weekStartInput.name = 'weekStart';
+            weekStartInput.value = weekStart;
+            form.appendChild(weekStartInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+            
+            // Close loading after a short delay
+            setTimeout(() => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.close();
+                }
+            }, 2000);
+        }
+    </script>
+}
+
+<style>
+    .shift-card {
+        border: 1px solid #dee2e6;
+        transition: all 0.3s ease;
+    }
+    
+    .shift-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    .schedule-table {
+        font-size: 0.9rem;
+    }
+    
+    .schedule-cell {
+        vertical-align: top;
+        padding: 8px;
+        min-height: 100px;
+    }
+    
+    .shift-assignment {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        position: relative;
+    }
+    
+    .shift-assignment.assigned {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    
+    .shift-assignment.available {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+    
+    .shift-assignment .btn {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        padding: 2px 4px;
+        font-size: 0.7rem;
+    }
+</style> 

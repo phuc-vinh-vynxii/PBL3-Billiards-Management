@@ -32,22 +32,43 @@ namespace BilliardsManagement.Services
 
         public async Task<(decimal TableTotal, decimal ServiceTotal, decimal GrandTotal)> CalculateInvoiceTotalsByInvoiceIdAsync(int invoiceId)
         {
-            var invoice = await _context.Invoices
-                .Include(i => i.Session)
-                    .ThenInclude(s => s.Table)
-                .Include(i => i.Session)
-                    .ThenInclude(s => s.Orders)
-                        .ThenInclude(o => o.OrderDetails)
-                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+            try
+            {
+                Console.WriteLine($"DEBUG InvoiceService: CalculateInvoiceTotalsByInvoiceIdAsync called with invoiceId: {invoiceId}");
+                
+                var invoice = await _context.Invoices
+                    .Include(i => i.Session)
+                        .ThenInclude(s => s.Table)
+                    .Include(i => i.Session)
+                        .ThenInclude(s => s.Orders)
+                            .ThenInclude(o => o.OrderDetails)
+                    .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
 
-            if (invoice?.Session == null)
-                return (0, 0, 0);
+                if (invoice?.Session == null)
+                {
+                    Console.WriteLine($"DEBUG InvoiceService: Invoice or Session is null for invoiceId: {invoiceId}");
+                    return (0, 0, 0);
+                }
 
-            var tableTotal = await CalculateTableTotalForSession(invoice.Session);
-            var serviceTotal = await CalculateServiceTotalForSession(invoice.Session);
-            var grandTotal = tableTotal + serviceTotal;
+                Console.WriteLine($"DEBUG InvoiceService: Found session {invoice.Session.SessionId} for invoice {invoiceId}");
 
-            return (tableTotal, serviceTotal, grandTotal);
+                var tableTotal = await CalculateTableTotalForSession(invoice.Session);
+                Console.WriteLine($"DEBUG InvoiceService: Table total: {tableTotal}");
+                
+                var serviceTotal = await CalculateServiceTotalForSession(invoice.Session);
+                Console.WriteLine($"DEBUG InvoiceService: Service total: {serviceTotal}");
+                
+                var grandTotal = tableTotal + serviceTotal;
+                Console.WriteLine($"DEBUG InvoiceService: Grand total: {grandTotal}");
+
+                return (tableTotal, serviceTotal, grandTotal);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"DEBUG InvoiceService ERROR in CalculateInvoiceTotalsByInvoiceIdAsync: {ex.Message}");
+                Console.WriteLine($"DEBUG InvoiceService ERROR Stack Trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         public async Task<List<dynamic>> GetInvoiceOrderDetailsAsync(int sessionId)

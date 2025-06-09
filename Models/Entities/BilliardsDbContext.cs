@@ -39,6 +39,10 @@ public partial class BilliardsDbContext : DbContext
 
     public virtual DbSet<EmployeePermission> EmployeePermissions { get; set; }
 
+    public virtual DbSet<Shift> Shifts { get; set; }
+
+    public virtual DbSet<ShiftAssignment> ShiftAssignments { get; set; }
+
     // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     // {
     //     // if (_configuration == null)
@@ -205,6 +209,34 @@ public partial class BilliardsDbContext : DbContext
             entity.HasOne(d => d.GrantedByEmployee)
                 .WithMany(p => p.GrantedPermissions)
                 .HasForeignKey(d => d.GrantedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Shift>(entity =>
+        {
+            entity.Property(e => e.ShiftId).ValueGeneratedOnAdd();
+            entity.Property(e => e.ShiftName).HasMaxLength(50);
+            entity.Property(e => e.Description).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<ShiftAssignment>(entity =>
+        {
+            entity.Property(e => e.ShiftAssignmentId).ValueGeneratedOnAdd();
+            entity.Property(e => e.Notes).HasMaxLength(200);
+
+            entity.HasOne(d => d.Employee)
+                .WithMany(p => p.ShiftAssignments)
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Shift)
+                .WithMany(p => p.ShiftAssignments)
+                .HasForeignKey(d => d.ShiftId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.CreatedByEmployee)
+                .WithMany(p => p.CreatedShiftAssignments)
+                .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

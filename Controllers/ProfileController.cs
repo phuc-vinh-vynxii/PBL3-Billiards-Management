@@ -2,16 +2,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BilliardsManagement.Models.Entities;
 using BilliardsManagement.Models.ViewModels;
+using BilliardsManagement.Repositories;
+using BilliardsManagement.Helpers;
 
 namespace BilliardsManagement.Controllers
 {
     public class ProfileController : Controller
     {
-        private readonly BilliardsDbContext _context;
+        private readonly IEmployeeRepository _employeeRepository;
 
-        public ProfileController(BilliardsDbContext context)
+        public ProfileController(IEmployeeRepository employeeRepository)
         {
-            _context = context;
+            _employeeRepository = employeeRepository;
         }
 
         [HttpGet]
@@ -26,7 +28,7 @@ namespace BilliardsManagement.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var employee = await _context.Employees.FindAsync(employeeId.Value);
+            var employee = await _employeeRepository.GetByIdAsync(employeeId.Value);
             if (employee == null)
             {
                 return RedirectToAction("Login", "Account");
@@ -55,49 +57,40 @@ namespace BilliardsManagement.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            if (employeeId.Value != model.EmployeeId)
+            if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Không có quyền chỉnh sửa thông tin này";
-                return RedirectToAction(nameof(Index));
+                return View("Index", model);
             }
 
-            var employee = await _context.Employees.FindAsync(employeeId.Value);
+            var employee = await _employeeRepository.GetByIdAsync(employeeId.Value);
             if (employee == null)
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            // Validate required fields
-            if (string.IsNullOrWhiteSpace(model.FullName))
+            // Check if email is being changed and already exists
+            if (employee.Email != model.Email)
             {
-                TempData["Error"] = "Họ tên không được để trống";
-                return RedirectToAction(nameof(Index));
-            }
-
-            // Check if email is already used by another employee
-            if (!string.IsNullOrWhiteSpace(model.Email))
-            {
-                var emailExists = await _context.Employees
-                    .AnyAsync(e => e.Email == model.Email && e.EmployeeId != employeeId.Value);
+                var emailExists = await _employeeRepository.IsEmailExistsAsync(model.Email, employeeId.Value);
                 if (emailExists)
                 {
-                    TempData["Error"] = "Email này đã được sử dụng bởi tài khoản khác";
-                    return RedirectToAction(nameof(Index));
+                    ModelState.AddModelError("Email", "Email đã được sử dụng bởi tài khoản khác");
+                    return View("Index", model);
                 }
             }
 
             // Update employee information
-            employee.FullName = model.FullName.Trim();
-            employee.Phone = model.Phone?.Trim();
-            employee.Email = model.Email?.Trim();
+            employee.FullName = model.FullName;
+            employee.Phone = model.Phone;
+            employee.Email = model.Email;
 
-            await _context.SaveChangesAsync();
+            await _employeeRepository.UpdateAsync(employee);
 
-            // Update session if full name changed
-            HttpContext.Session.SetString("FullName", employee.FullName);
+            // Update session if FullName changed
+            HttpContext.Session.SetString("FullName", employee.FullName ?? "");
 
             TempData["Success"] = "Cập nhật thông tin thành công";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index");
         }
 
         [HttpPost]
@@ -106,43 +99,47 @@ namespace BilliardsManagement.Controllers
             var employeeId = HttpContext.Session.GetInt32("EmployeeId");
             if (!employeeId.HasValue)
             {
-                return Json(new { success = false, message = "Phiên đăng nhập đã hết hạn" });
+                return RedirectToAction("Login", "Account");
             }
 
-            var employee = await _context.Employees.FindAsync(employeeId.Value);
-            if (employee == null)
+            if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmPassword))
             {
-                return Json(new { success = false, message = "Không tìm thấy thông tin tài khoản" });
-            }
-
-            // Validate input
-            if (string.IsNullOrWhiteSpace(currentPassword))
-            {
-                return Json(new { success = false, message = "Vui lòng nhập mật khẩu hiện tại" });
-            }
-
-            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            {
-                return Json(new { success = false, message = "Mật khẩu mới phải có ít nhất 6 ký tự" });
+                TempData["Error"] = "Vui lòng nhập đầy đủ thông tin";
+                return RedirectToAction("Index");
             }
 
             if (newPassword != confirmPassword)
             {
-                return Json(new { success = false, message = "Mật khẩu xác nhận không khớp" });
+                TempData["Error"] = "Mật khẩu mới và xác nhận mật khẩu không khớp";
+                return RedirectToAction("Index");
+            }
+
+            if (newPassword.Length < 6)
+            {
+                TempData["Error"] = "Mật khẩu mới phải có ít nhất 6 ký tự";
+                return RedirectToAction("Index");
+            }
+
+            var employee = await _employeeRepository.GetByIdAsync(employeeId.Value);
+            if (employee == null)
+            {
+                return RedirectToAction("Login", "Account");
             }
 
             // Verify current password
-            var hashedCurrentPassword = BilliardsManagement.Helpers.PasswordHasher.ComputeSha256Hash(currentPassword);
+            string hashedCurrentPassword = PasswordHasher.ComputeSha256Hash(currentPassword);
             if (employee.Password != hashedCurrentPassword)
             {
-                return Json(new { success = false, message = "Mật khẩu hiện tại không đúng" });
+                TempData["Error"] = "Mật khẩu hiện tại không đúng";
+                return RedirectToAction("Index");
             }
 
             // Update password
-            employee.Password = BilliardsManagement.Helpers.PasswordHasher.ComputeSha256Hash(newPassword);
-            await _context.SaveChangesAsync();
+            employee.Password = PasswordHasher.ComputeSha256Hash(newPassword);
+            await _employeeRepository.UpdateAsync(employee);
 
-            return Json(new { success = true, message = "Đổi mật khẩu thành công" });
+            TempData["Success"] = "Đổi mật khẩu thành công";
+            return RedirectToAction("Index");
         }
     }
 } 

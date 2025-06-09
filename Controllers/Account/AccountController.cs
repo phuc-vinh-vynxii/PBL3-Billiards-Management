@@ -5,16 +5,17 @@ using Microsoft.AspNetCore.Http;
 using System.Linq;
 using BilliardsManagement.Models.Entities;
 using BilliardsManagement.Models.ViewModels;
+using BilliardsManagement.Repositories;
 
 namespace BilliardsManagement.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly BilliardsDbContext _context;
+        private readonly IEmployeeRepository _employeeRepository;
 
-        public AccountController(BilliardsDbContext context)
+        public AccountController(IEmployeeRepository employeeRepository)
         {
-            _context = context;
+            _employeeRepository = employeeRepository;
         }
 
         [HttpGet]
@@ -26,7 +27,7 @@ namespace BilliardsManagement.Controllers
         }
 
         [HttpPost]
-        public IActionResult Login(LoginViewModel model)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -44,8 +45,7 @@ namespace BilliardsManagement.Controllers
             {
                 string hashedPassword = PasswordHasher.ComputeSha256Hash(model.Password);
 
-                var employee = _context.Employees
-                    .FirstOrDefault(e => e.Username == model.Username && e.Password == hashedPassword);
+                var employee = await _employeeRepository.GetByUsernameAndPasswordAsync(model.Username, hashedPassword);
 
                 if (employee == null)
                 {
@@ -93,7 +93,7 @@ namespace BilliardsManagement.Controllers
         }
 
         [HttpPost]
-        public IActionResult Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -101,14 +101,14 @@ namespace BilliardsManagement.Controllers
             }
 
             // Check if username already exists
-            if (_context.Employees.Any(e => e.Username == model.Username))
+            if (await _employeeRepository.IsUsernameExistsAsync(model.Username))
             {
                 ModelState.AddModelError("Username", "Tên đăng nhập đã tồn tại.");
                 return View(model);
             }
 
             // Check if email already exists
-            if (_context.Employees.Any(e => e.Email == model.Email))
+            if (await _employeeRepository.IsEmailExistsAsync(model.Email))
             {
                 ModelState.AddModelError("Email", "Email đã được sử dụng.");
                 return View(model);
@@ -121,11 +121,11 @@ namespace BilliardsManagement.Controllers
                 FullName = model.FullName,
                 Email = model.Email,
                 Phone = model.Phone,
-                Position = "SERVING" // Default role
+                Position = "SERVING", // Default role
+                CreatedAt = DateTime.Now
             };
 
-            _context.Employees.Add(employee);
-            _context.SaveChanges();
+            await _employeeRepository.CreateAsync(employee);
 
             TempData["SuccessMessage"] = "Đăng ký thành công! Vui lòng đăng nhập.";
             return RedirectToAction(nameof(Login));

@@ -4,6 +4,7 @@ using BilliardsManagement.Models.Entities;
 using BilliardsManagement.Models.ViewModels;
 using BilliardsManagement.Services;
 using BilliardsManagement.Attributes;
+using BilliardsManagement.Repositories;
 using System.Text;
 
 namespace BilliardsManagement.Controllers
@@ -22,6 +23,13 @@ namespace BilliardsManagement.Controllers
         private readonly ISessionService _sessionService;
         private readonly IOrderManagementService _orderManagementService;
         private readonly IInvoiceService _invoiceService;
+        private readonly IShiftService _shiftService;
+        
+        // Add Repository dependencies
+        private readonly IEmployeeRepository _employeeRepository;
+        private readonly ITableRepository _tableRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IInvoiceRepository _invoiceRepository;
 
         public ManagerController(
             BilliardsDbContext context, 
@@ -35,7 +43,12 @@ namespace BilliardsManagement.Controllers
             ICustomerService customerService,
             ISessionService sessionService,
             IOrderManagementService orderManagementService,
-            IInvoiceService invoiceService)
+            IInvoiceService invoiceService,
+            IShiftService shiftService,
+            IEmployeeRepository employeeRepository,
+            ITableRepository tableRepository,
+            IProductRepository productRepository,
+            IInvoiceRepository invoiceRepository)
         {
             _context = context;
             _revenueService = revenueService;
@@ -49,6 +62,12 @@ namespace BilliardsManagement.Controllers
             _sessionService = sessionService;
             _orderManagementService = orderManagementService;
             _invoiceService = invoiceService;
+            _shiftService = shiftService;
+            
+            _employeeRepository = employeeRepository;
+            _tableRepository = tableRepository;
+            _productRepository = productRepository;
+            _invoiceRepository = invoiceRepository;
         }
 
         [HttpGet]
@@ -64,17 +83,15 @@ namespace BilliardsManagement.Controllers
             var today = DateTime.Today;
             var model = new ManagerDashboardViewModel
             {
-                Tables = await _context.Tables.ToListAsync(),
-                TotalTables = await _context.Tables.CountAsync(),
-                AvailableTables = await _context.Tables.CountAsync(t => t.Status == "AVAILABLE"),
-                BrokenTables = await _context.Tables.CountAsync(t => t.Status == "BROKEN"),
-                MaintenanceTables = await _context.Tables.CountAsync(t => t.Status == "MAINTENANCE"),
-                TotalEmployees = await _context.Employees.CountAsync(),
-                TotalProducts = await _context.Products.CountAsync(),
-                LowStockProducts = await _context.Products.CountAsync(p => p.Quantity < 10),
-                TodayRevenue = await _context.Invoices
-                    .Where(i => i.PaymentTime!.Value.Date == today && i.Status == "COMPLETED")
-                    .SumAsync(i => i.TotalAmount ?? 0)
+                Tables = await _tableRepository.GetAllAsync(),
+                TotalTables = await _tableRepository.GetCountAsync(),
+                AvailableTables = await _tableRepository.GetCountByStatusAsync("AVAILABLE"),
+                BrokenTables = await _tableRepository.GetCountByStatusAsync("BROKEN"),
+                MaintenanceTables = await _tableRepository.GetCountByStatusAsync("MAINTENANCE"),
+                TotalEmployees = await _employeeRepository.GetCountAsync(),
+                TotalProducts = await _productRepository.GetCountAsync(),
+                LowStockProducts = await _productRepository.GetLowStockCountAsync(10),
+                TodayRevenue = await _invoiceRepository.GetTotalRevenueByDateAsync(today)
             };
 
             return View(model);
@@ -835,44 +852,38 @@ namespace BilliardsManagement.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAvailableProducts()
         {
-            var products = await _context.Products
-                .Where(p => (p.ProductType == ProductType.FOOD || p.ProductType == ProductType.BEVERAGE) 
-                          && p.Status == "AVAILABLE" && p.Quantity > 0)
-                .Select(p => new {
-                    productId = p.ProductId,
-                    productName = p.ProductName,
-                    productType = p.ProductType.ToString(),
-                    price = p.Price,
-                    quantity = p.Quantity
-                })
-                .ToListAsync();
+            var products = await _productRepository.GetAvailableFoodAndBeverageAsync();
+            
+            var result = products.Select(p => new {
+                productId = p.ProductId,
+                productName = p.ProductName,
+                productType = p.ProductType.ToString(),
+                price = p.Price,
+                quantity = p.Quantity
+            }).ToList();
                 
-            return Json(products);
+            return Json(result);
         }
         
         [HttpGet]
         public async Task<IActionResult> GetCurrentOrder(int sessionId)
         {
-            var orderDetails = await _context.OrderDetails
-                .Include(od => od.Order)
-                .Include(od => od.Product)
-                .Where(od => od.Order != null && od.Order.SessionId == sessionId && od.Order.Status == "PENDING")
-                .Select(od => new {
-                    orderDetailId = od.OrderDetailId,
-                    productName = od.Product.ProductName,
-                    quantity = od.Quantity,
-                    unitPrice = od.UnitPrice
-                })
-                .ToListAsync();
+            var orderDetails = await _orderManagementService.GetOrderDetailsBySessionAsync(sessionId);
+            var result = orderDetails.Select(od => new {
+                orderDetailId = od.OrderDetailId,
+                productName = od.Product?.ProductName,
+                quantity = od.Quantity,
+                unitPrice = od.UnitPrice
+            }).ToList();
                 
-            return Json(orderDetails);
+            return Json(result);
         }
         
         [HttpGet]
         public async Task<IActionResult> TableService(int tableId, int sessionId)
         {
             // Get table information
-            var table = await _context.Tables.FindAsync(tableId);
+            var table = await _tableRepository.GetByIdAsync(tableId);
             if (table == null)
                 return NotFound();
                 
@@ -883,17 +894,10 @@ namespace BilliardsManagement.Controllers
                 return NotFound();
                 
             // Get available products
-            var availableProducts = await _context.Products
-                .Where(p => (p.ProductType == ProductType.FOOD || p.ProductType == ProductType.BEVERAGE) 
-                          && p.Status == "AVAILABLE" && p.Quantity > 0)
-                .ToListAsync();
+            var availableProducts = await _productRepository.GetAvailableFoodAndBeverageAsync();
                 
             // Get current order details
-            var orderDetails = await _context.OrderDetails
-                .Include(od => od.Order)
-                .Include(od => od.Product)
-                .Where(od => od.Order != null && od.Order.SessionId == sessionId && od.Order.Status == "PENDING")
-                .ToListAsync();
+            var orderDetails = await _orderManagementService.GetOrderDetailsBySessionAsync(sessionId);
                 
             // Calculate total amount for current order
             decimal orderTotal = orderDetails.Sum(od => (od.UnitPrice ?? 0) * (od.Quantity ?? 0));
@@ -1612,6 +1616,302 @@ namespace BilliardsManagement.Controllers
             {
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        // Shift Management functionality
+        [HttpGet]
+        public async Task<IActionResult> ShiftManagement(DateTime? weekStart = null)
+        {
+            // Check if user is manager
+            var role = HttpContext.Session.GetString("Role")?.ToUpper();
+            if (role != "MANAGER")
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            // If no week start provided, use current week (Monday start)
+            var targetDate = weekStart ?? DateTime.Today;
+            var currentWeekStart = targetDate.AddDays(-(int)targetDate.DayOfWeek + (int)DayOfWeek.Monday);
+            if (targetDate.DayOfWeek == DayOfWeek.Sunday)
+                currentWeekStart = currentWeekStart.AddDays(-7);
+
+            var viewModel = await _shiftService.GetWeeklyScheduleAsync(currentWeekStart);
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateShift(CreateShiftViewModel model)
+        {
+            var result = await _shiftService.CreateShiftAsync(model);
+            
+            if (result)
+            {
+                TempData["Success"] = "Tạo ca làm việc thành công";
+            }
+            else
+            {
+                TempData["Error"] = "Có lỗi xảy ra khi tạo ca làm việc";
+            }
+            
+            return RedirectToAction(nameof(ShiftManagement));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateShift(int shiftId, CreateShiftViewModel model)
+        {
+            var result = await _shiftService.UpdateShiftAsync(shiftId, model);
+            
+            if (result)
+            {
+                TempData["Success"] = "Cập nhật ca làm việc thành công";
+            }
+            else
+            {
+                TempData["Error"] = "Có lỗi xảy ra khi cập nhật ca làm việc";
+            }
+            
+            return RedirectToAction(nameof(ShiftManagement));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteShift(int shiftId)
+        {
+            var result = await _shiftService.DeleteShiftAsync(shiftId);
+            
+            if (result)
+            {
+                TempData["Success"] = "Xóa ca làm việc thành công";
+            }
+            else
+            {
+                TempData["Error"] = "Có lỗi xảy ra khi xóa ca làm việc";
+            }
+            
+            return RedirectToAction(nameof(ShiftManagement));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignShift([FromBody] AssignShiftRequest request)
+        {
+            var managerId = HttpContext.Session.GetInt32("EmployeeId");
+            if (!managerId.HasValue)
+            {
+                return Json(new { success = false, message = "Không xác định được quản lý" });
+            }
+
+            var result = await _shiftService.AssignShiftAsync(request, managerId.Value);
+            
+            return Json(new { 
+                success = result.Success, 
+                message = result.Message 
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UnassignShift(int assignmentId)
+        {
+            var result = await _shiftService.UnassignShiftAsync(assignmentId);
+            
+            if (result)
+            {
+                return Json(new { success = true, message = "Hủy phân công ca làm việc thành công" });
+            }
+            else
+            {
+                return Json(new { success = false, message = "Có lỗi xảy ra khi hủy phân công ca làm việc" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeeShifts(int employeeId, DateTime weekStart)
+        {
+            var shifts = await _shiftService.GetEmployeeShiftsAsync(employeeId, weekStart);
+            
+            var result = shifts.Select(s => new {
+                shiftAssignmentId = s.ShiftAssignmentId,
+                shiftName = s.Shift.ShiftName,
+                startTime = s.Shift.StartTime.ToString("HH:mm"),
+                endTime = s.Shift.EndTime.ToString("HH:mm"),
+                assignedDate = s.AssignedDate.ToString("yyyy-MM-dd"),
+                dayOfWeek = s.DayOfWeek.ToString(),
+                notes = s.Notes
+            });
+            
+            return Json(new { success = true, data = result });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> BulkAssignShifts([FromBody] List<AssignShiftRequest> requests)
+        {
+            var managerId = HttpContext.Session.GetInt32("EmployeeId");
+            if (!managerId.HasValue)
+            {
+                return Json(new { success = false, message = "Không xác định được quản lý" });
+            }
+
+            var result = await _shiftService.BulkAssignShiftsAsync(requests, managerId.Value);
+            
+            if (result)
+            {
+                return Json(new { success = true, message = "Phân công hàng loạt thành công" });
+            }
+            else
+            {
+                return Json(new { success = false, message = "Có lỗi xảy ra khi phân công hàng loạt" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportShiftSchedule(DateTime? weekStart = null)
+        {
+            try
+            {
+                // If no week start provided, use current week (Monday start)
+                var targetDate = weekStart ?? DateTime.Today;
+                var currentWeekStart = targetDate.AddDays(-(int)targetDate.DayOfWeek + (int)DayOfWeek.Monday);
+                if (targetDate.DayOfWeek == DayOfWeek.Sunday)
+                    currentWeekStart = currentWeekStart.AddDays(-7);
+
+                var weekEnd = currentWeekStart.AddDays(6);
+                var viewModel = await _shiftService.GetWeeklyScheduleAsync(currentWeekStart);
+
+                var csv = GenerateShiftScheduleCSV(viewModel);
+                
+                // Thêm BOM (Byte Order Mark) cho UTF-8 để Excel hiển thị tiếng Việt đúng
+                var preamble = Encoding.UTF8.GetPreamble();
+                var csvBytes = Encoding.UTF8.GetBytes(csv);
+                var csvWithBOM = new byte[preamble.Length + csvBytes.Length];
+                Array.Copy(preamble, 0, csvWithBOM, 0, preamble.Length);
+                Array.Copy(csvBytes, 0, csvWithBOM, preamble.Length, csvBytes.Length);
+                
+                var fileName = $"lich_ca_lam_viec_{currentWeekStart:yyyyMMdd}_{weekEnd:yyyyMMdd}.csv";
+                return File(csvWithBOM, "text/csv; charset=utf-8", fileName);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Có lỗi xảy ra khi xuất file: {ex.Message}";
+                return RedirectToAction(nameof(ShiftManagement));
+            }
+        }
+
+        private string GenerateShiftScheduleCSV(ShiftManagementViewModel data)
+        {
+            var csv = new StringBuilder();
+            
+            // Header với thông tin báo cáo
+            csv.AppendLine("LỊCH CA LÀM VIỆC TUẦN");
+            csv.AppendLine($"Từ ngày:,{data.CurrentWeekStart:dd/MM/yyyy}");
+            csv.AppendLine($"Đến ngày:,{data.CurrentWeekEnd:dd/MM/yyyy}");
+            csv.AppendLine($"Thời gian xuất:,{DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            csv.AppendLine("");
+
+            // Danh sách ca làm việc
+            csv.AppendLine("DANH SÁCH CA LÀM VIỆC");
+            csv.AppendLine("Tên ca,Giờ bắt đầu,Giờ kết thúc,Mô tả");
+            foreach (var shift in data.Shifts)
+            {
+                csv.AppendLine($"\"{shift.ShiftName}\",{shift.StartTime:HH:mm},{shift.EndTime:HH:mm},\"{shift.Description ?? ""}\"");
+            }
+            csv.AppendLine("");
+
+            // Bảng lịch ca làm việc
+            csv.AppendLine("LỊCH PHÂN CÔNG CA LÀM VIỆC TRONG TUẦN");
+            
+            // Header của bảng
+            var headerRow = new List<string> { "Nhân viên", "Chức vụ" };
+            var weekDays = new[] { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật" };
+            headerRow.AddRange(weekDays);
+            csv.AppendLine(string.Join(",", headerRow.Select(h => $"\"{h}\"")));
+
+            // Dữ liệu nhân viên và ca làm việc
+            foreach (var employee in data.WeeklyAssignments)
+            {
+                var row = new List<string>
+                {
+                    $"\"{employee.EmployeeName}\"",
+                    $"\"{GetPositionDisplayName(employee.Position)}\""
+                };
+
+                // Thêm ca làm việc cho từng ngày trong tuần
+                for (int day = 1; day <= 7; day++)
+                {
+                    var dayOfWeek = (DayOfWeek)(day % 7);
+                    var shiftsForDay = new List<string>();
+
+                    if (employee.DailyShifts.ContainsKey(dayOfWeek))
+                    {
+                        foreach (var shift in employee.DailyShifts[dayOfWeek])
+                        {
+                            if (shift.IsAssigned)
+                            {
+                                shiftsForDay.Add($"{shift.ShiftName} ({shift.StartTime:HH:mm}-{shift.EndTime:HH:mm})");
+                            }
+                        }
+                    }
+
+                    var dayContent = shiftsForDay.Count > 0 
+                        ? string.Join("; ", shiftsForDay)
+                        : "Nghỉ";
+                    
+                    row.Add($"\"{dayContent}\"");
+                }
+
+                csv.AppendLine(string.Join(",", row));
+            }
+
+            csv.AppendLine("");
+
+            // Thống kê
+            csv.AppendLine("THỐNG KÊ");
+            csv.AppendLine($"Tổng số nhân viên:,{data.Employees.Count}");
+            csv.AppendLine($"Tổng số ca làm việc:,{data.Shifts.Count}");
+            
+            var totalAssignments = data.WeeklyAssignments
+                .SelectMany(e => e.DailyShifts.Values.SelectMany(shifts => shifts))
+                .Count(s => s.IsAssigned);
+            csv.AppendLine($"Tổng số ca đã phân công:,{totalAssignments}");
+
+            // Thống kê theo ngày
+            csv.AppendLine("");
+            csv.AppendLine("THỐNG KÊ THEO NGÀY");
+            csv.AppendLine("Ngày,Số ca đã phân công,Nhân viên có ca");
+            
+            for (int day = 1; day <= 7; day++)
+            {
+                var dayOfWeek = (DayOfWeek)(day % 7);
+                var dayName = weekDays[day - 1];
+                var currentDate = data.CurrentWeekStart.AddDays(day - 1);
+                
+                var assignedShiftsCount = data.WeeklyAssignments
+                    .SelectMany(e => e.DailyShifts.ContainsKey(dayOfWeek) ? e.DailyShifts[dayOfWeek] : new List<ShiftInfo>())
+                    .Count(s => s.IsAssigned);
+                    
+                var employeesWithShifts = data.WeeklyAssignments
+                    .Count(e => e.DailyShifts.ContainsKey(dayOfWeek) && 
+                               e.DailyShifts[dayOfWeek].Any(s => s.IsAssigned));
+
+                csv.AppendLine($"\"{dayName} ({currentDate:dd/MM})\",{assignedShiftsCount},{employeesWithShifts}");
+            }
+
+            // Footer
+            csv.AppendLine("");
+            csv.AppendLine("---");
+            csv.AppendLine($"Báo cáo được tạo bởi: Hệ thống quản lý Billiards");
+            csv.AppendLine($"Thời gian: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            
+            return csv.ToString();
+        }
+
+        private string GetPositionDisplayName(string position)
+        {
+            return position?.ToUpper() switch
+            {
+                "MANAGER" => "Quản lý",
+                "CASHIER" => "Thu ngân", 
+                "SERVING" => "Phục vụ",
+                "EMPLOYEE" => "Nhân viên",
+                _ => position ?? "N/A"
+            };
         }
     }
 }

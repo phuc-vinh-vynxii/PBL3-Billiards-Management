@@ -4,6 +4,7 @@ using BilliardsManagement.Models.Entities;
 using BilliardsManagement.Models.ViewModels;
 using BilliardsManagement.Attributes;
 using BilliardsManagement.Services;
+using BilliardsManagement.Repositories;
 
 namespace BilliardsManagement.Controllers;
 
@@ -18,6 +19,11 @@ public class ServingController : Controller
     private readonly IBookingService _bookingService;
     private readonly ICustomerService _customerService;
     private readonly IProductService _productService;
+    
+    // Add Repository dependencies
+    private readonly ITableRepository _tableRepository;
+    private readonly IProductRepository _productRepository;
+    private readonly IInvoiceRepository _invoiceRepository;
 
     public ServingController(
         BilliardsDbContext context, 
@@ -28,7 +34,10 @@ public class ServingController : Controller
         ITableService tableService,
         IBookingService bookingService,
         ICustomerService customerService,
-        IProductService productService)
+        IProductService productService,
+        ITableRepository tableRepository,
+        IProductRepository productRepository,
+        IInvoiceRepository invoiceRepository)
     {
         _context = context;
         _permissionService = permissionService;
@@ -39,6 +48,9 @@ public class ServingController : Controller
         _bookingService = bookingService;
         _customerService = customerService;
         _productService = productService;
+        _tableRepository = tableRepository;
+        _productRepository = productRepository;
+        _invoiceRepository = invoiceRepository;
     }
 
     public async Task<IActionResult> Index()
@@ -57,10 +69,7 @@ public class ServingController : Controller
             HttpContext.Session.Remove("TempError");
         }
 
-        var tables = await _context.Tables
-            .Include(t => t.Sessions.Where(s => s.EndTime == null))
-            .OrderBy(t => t.TableId)
-            .ToListAsync();
+        var tables = await _tableRepository.GetWithActiveSessionsAsync();
 
         // Check if user has TABLE_TRANSFER permission
         var employeeId = HttpContext.Session.GetInt32("EmployeeId");
@@ -78,17 +87,14 @@ public class ServingController : Controller
 
     public async Task<IActionResult> Table(int id)
     {
+        var table = await _tableRepository.GetByIdAsync(id);
+        var availableProducts = await _productRepository.GetAvailableFoodAndBeverageAsync();
+        
         var model = new ServingOrderViewModel
         {
             TableId = id,
-            TableName = await _context.Tables
-                .Where(t => t.TableId == id)
-                .Select(t => t.TableName)
-                .FirstOrDefaultAsync() ?? string.Empty,
-            AvailableProducts = await _context.Products
-                .Where(p => (p.ProductType == ProductType.FOOD || p.ProductType == ProductType.BEVERAGE) 
-                           && p.Status == "AVAILABLE")
-                .ToListAsync(),
+            TableName = table?.TableName ?? string.Empty,
+            AvailableProducts = availableProducts,
             SessionId = await _context.Sessions
                 .Where(s => s.TableId == id && s.EndTime == null)
                 .Select(s => s.SessionId)
@@ -213,17 +219,11 @@ public class ServingController : Controller
     {
         try
         {
-            var pendingInvoices = await _context.Invoices
-                .Include(i => i.Session)
-                .ThenInclude(s => s.Table)
-                .Where(i => i.Status == "PENDING" && 
-                           i.Session != null && 
-                           i.Session.EndTime == null)
-                .OrderBy(i => i.Session.StartTime)
-                .ToListAsync();
+            var pendingInvoices = await _invoiceRepository.GetPendingWithActiveSessionsAsync();
 
             var invoiceData = new List<object>();
             
+            // Process invoices sequentially to avoid DbContext threading issues
             foreach (var invoice in pendingInvoices)
             {
                 var currentDuration = invoice.Session?.StartTime != null 
